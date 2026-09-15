@@ -20,7 +20,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 async function discoverChatGptChoices() {
-  const model = await discoverMenu(findModelSwitcherButton, cleanModelLabel, false);
+  const model = await discoverMenu(findModelSwitcherButton, cleanModelLabel, true);
   const reasoning = await discoverMenu(findReasoningSwitcherButton, cleanReasoningLabel, true);
   return {
     currentModel: model.current || 'Auto',
@@ -31,7 +31,7 @@ async function discoverChatGptChoices() {
 }
 
 async function selectChoices(model, reasoning) {
-  await selectMenuChoice(model, findModelSwitcherButton, cleanModelLabel, 'model', false);
+  await selectMenuChoice(model, findModelSwitcherButton, cleanModelLabel, 'model', true);
   await selectMenuChoice(reasoning, findReasoningSwitcherButton, cleanReasoningLabel, 'reasoning mode', true);
 }
 
@@ -101,20 +101,30 @@ function visibleMenuOptions(includeComposer) {
 function findModelSwitcherButton() {
   const selectors = [
     'button[data-testid="model-switcher-dropdown-button"]',
+    'button[data-testid*="model" i]',
     'button[aria-label*="model" i]',
     'button[id*="model" i]',
   ];
   for (const selector of selectors) {
     for (const button of document.querySelectorAll(selector)) {
-      if (isVisible(button) && !button.closest('form[data-type="unified-composer"]')) return button;
+      if (isVisible(button) && looksLikeModelSwitcher(button)) return button;
     }
   }
-  const header = document.querySelector('#page-header');
-  if (!header) return null;
-  return [...header.querySelectorAll('button[aria-haspopup="menu"]')].find((button) => {
-    if (!isVisible(button) || button.closest('form[data-type="unified-composer"]')) return false;
-    return looksLikeModelLabel(cleanModelLabel(button.textContent || button.getAttribute('aria-label') || ''));
-  }) || null;
+
+  const candidates = [
+    ...document.querySelectorAll('form[data-type="unified-composer"] button[aria-haspopup="menu"], form[data-type="unified-composer"] button[aria-haspopup="listbox"]'),
+    ...document.querySelectorAll('#page-header button[aria-haspopup="menu"], #page-header button[aria-haspopup="listbox"]'),
+  ];
+  return candidates.find((button) => isVisible(button) && looksLikeModelSwitcher(button)) || null;
+}
+
+function looksLikeModelSwitcher(button) {
+  const testId = cleanLabel(button.getAttribute('data-testid') || '');
+  const id = cleanLabel(button.id || button.getAttribute('id') || '');
+  const aria = cleanLabel(button.getAttribute('aria-label') || '');
+  if (/model/i.test(testId) || /model/i.test(id) || /model/i.test(aria)) return true;
+  const label = cleanModelLabel(button.textContent || aria);
+  return /^auto$/i.test(label) || looksLikeModelLabel(label);
 }
 
 function findReasoningSwitcherButton() {
