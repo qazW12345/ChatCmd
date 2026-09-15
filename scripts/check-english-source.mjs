@@ -16,6 +16,12 @@ const ignoredDirectories = new Set(['node_modules', 'target', 'dist', '.git']);
 const vietnamese = /[ĂăÂâĐđÊêÔôƠơƯư\u1EA0-\u1EF9]/u;
 const findings = [];
 
+function decodeUnicodeEscapes(line) {
+  return line
+    .replace(/\\u\{([0-9a-fA-F]{4,6})\}/gu, (_match, hex) => String.fromCodePoint(Number.parseInt(hex, 16)))
+    .replace(/\\u([0-9a-fA-F]{4})/gu, (_match, hex) => String.fromCodePoint(Number.parseInt(hex, 16)));
+}
+
 function walk(directory) {
   if (!fs.existsSync(directory)) return;
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -28,7 +34,7 @@ function walk(directory) {
     if (!entry.isFile() || !textExtensions.has(path.extname(entry.name))) continue;
     const text = fs.readFileSync(full, 'utf8');
     text.split(/\r?\n/u).forEach((line, index) => {
-      if (vietnamese.test(line)) {
+      if (vietnamese.test(line) || vietnamese.test(decodeUnicodeEscapes(line))) {
         findings.push(`${path.relative(root, full)}:${index + 1}: ${line.trim()}`);
       }
     });
