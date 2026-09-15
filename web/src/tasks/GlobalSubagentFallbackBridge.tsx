@@ -6,7 +6,7 @@ import type { TimelineEvent } from '../types';
 import { canonicalProjectPath } from './workspaceProjects';
 import { ChatGptBridgeTimeoutError } from '../chatgpt/bridgeErrors';
 
-type RoutedSubagentFallbackRequest = SubagentFallbackRequest & { model?: string };
+type RoutedSubagentFallbackRequest = SubagentFallbackRequest & { model?: string; reasoning?: string };
 
 export function GlobalSubagentFallbackBridge() {
   const inFlight = useRef(new Set<string>());
@@ -30,6 +30,7 @@ export function GlobalSubagentFallbackBridge() {
         submittedContent: fallback.submittedContent,
         attempt: fallback.attempt,
         model: fallback.model,
+        reasoning: fallback.reasoning,
         conversationUrl: fallback.conversationUrl ?? undefined,
         newConversationUrl,
       });
@@ -104,6 +105,7 @@ function fallbackFromPayload(payload: Record<string, unknown>): RoutedSubagentFa
     parentTurnId: stringValue(payload.parentTurnId) || undefined,
     name: stringValue(payload.name) || 'Sub-agent',
     model: stringValue(payload.model) || undefined,
+    reasoning: stringValue(payload.reasoning) || undefined,
     projectFolder: stringValue(payload.projectFolder) || undefined,
     conversationId: stringValue(payload.conversationId) || undefined,
     conversationUrl: stringValue(payload.conversationUrl) || undefined,
