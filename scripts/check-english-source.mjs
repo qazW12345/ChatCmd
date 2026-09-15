@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 
-const root = path.resolve(new URL('..', import.meta.url).pathname.replace(/^\/(?:[A-Za-z]:)/, (value) => value.slice(1)));
+const root = fileURLToPath(new URL('..', import.meta.url));
 const roots = ['src', 'crates', 'web/src', 'chatgpt-extension'];
 const textExtensions = new Set([
   '.rs', '.ts', '.tsx', '.js', '.cjs', '.mjs', '.json', '.html', '.css', '.md', '.sql', '.toml', '.yml', '.yaml',
