@@ -11,7 +11,7 @@ function create(deps) {
     }));
     const input = findComposerFileInput(composer);
     if (input) {
-      if (!assignFilesToInput(input, files)) throw new Error('ChatGPT không nhận dữ liệu tệp từ bộ chọn tệp.');
+      if (!assignFilesToInput(input, files)) throw new Error('ChatGPT did not accept file data from the file input.');
       return;
     }
 
@@ -21,7 +21,7 @@ function create(deps) {
     await waitFor(
       () => attachmentUiChanged(baseline, findComposer() || composer, files) ? true : null,
       12_000,
-      `ChatGPT không xác nhận tệp đính kèm ${files.map((file) => file.name).join(', ')}.`,
+      `ChatGPT did not confirm the attached file(s): ${files.map((file) => file.name).join(', ')}.`,
     );
   }
 
@@ -44,7 +44,7 @@ function create(deps) {
       const candidate = findSendButton();
       if (!candidate || candidate.isConnected === false || candidate.disabled || candidate.getAttribute('aria-disabled') === 'true' || findStopButton()) return null;
       return candidate;
-    }, 20_000, 'ChatGPT chưa sẵn sàng gửi: nội dung nhập hoặc tệp đính kèm vẫn đang được đồng bộ.');
+    }, 20_000, 'ChatGPT is not ready to send: the prompt or attachments are still being synchronized.');
     button.click();
     findComposer()?.blur?.();
   }
