@@ -22,6 +22,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 async function discoverChatGptChoices() {
   const model = await discoverMenu(findModelSwitcherButton, cleanModelLabel, true);
   const reasoning = await discoverMenu(findReasoningSwitcherButton, cleanReasoningLabel, true);
+  if (!model.options.length) {
+    throw new Error(`No ChatGPT model choices were discovered. Visible control diagnostics: ${modelControlDiagnostics()}`);
+  }
   return {
     currentModel: model.current || 'Auto',
     models: model.options,
@@ -125,6 +128,45 @@ function looksLikeModelSwitcher(button) {
   if (/model/i.test(testId) || /model/i.test(id) || /model/i.test(aria)) return true;
   const label = cleanModelLabel(button.textContent || aria);
   return /^auto$/i.test(label) || looksLikeModelLabel(label);
+}
+
+function modelControlDiagnostics() {
+  const containers = [
+    document.querySelector('form[data-type="unified-composer"]'),
+    document.querySelector('#page-header'),
+  ].filter(Boolean);
+  const pool = containers.length
+    ? containers.flatMap((container) => [...container.querySelectorAll('button, [role="button"], [role="combobox"]')])
+    : [...document.querySelectorAll('button, [role="button"], [role="combobox"]')];
+  const visible = pool.filter((element) => isVisible(element));
+  const preferred = visible.filter((element) => /model|gpt|auto|thinking|reasoning|instant|medium|high|pro|sol|luna/i.test(controlDiagnosticText(element)));
+  const candidates = (preferred.length ? preferred : visible).slice(0, 10);
+  if (!candidates.length) return 'no visible buttons/comboboxes in composer or page header';
+  return candidates.map((element) => describeControl(element)).join(' | ');
+}
+
+function controlDiagnosticText(element) {
+  return [
+    element.textContent,
+    element.getAttribute('aria-label'),
+    element.getAttribute('data-testid'),
+    element.getAttribute('id'),
+  ].filter(Boolean).join(' ');
+}
+
+function describeControl(element) {
+  const text = diagnosticValue(element.textContent);
+  const aria = diagnosticValue(element.getAttribute('aria-label'));
+  const testId = diagnosticValue(element.getAttribute('data-testid'));
+  const id = diagnosticValue(element.getAttribute('id'));
+  const popup = diagnosticValue(element.getAttribute('aria-haspopup'));
+  const role = diagnosticValue(element.getAttribute('role'));
+  return `<${String(element.tagName || 'element').toLowerCase()}> text="${text}" aria="${aria}" testid="${testId}" id="${id}" popup="${popup}" role="${role}"`;
+}
+
+function diagnosticValue(value) {
+  const cleaned = cleanLabel(value || '').replace(/[|<>]/g, ' ').trim();
+  return cleaned.length > 80 ? `${cleaned.slice(0, 77)}...` : cleaned;
 }
 
 function findReasoningSwitcherButton() {
