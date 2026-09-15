@@ -4,11 +4,19 @@ const { isVisible } = globalThis.ChatCmdConversationDom;
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (!globalThis.ChatCmdRuntime.current(CONTENT_CONTEXT)) return false;
-  if (message?.type !== 'chatcmd-chatgpt-model-options') return false;
-  void discoverChatGptChoices()
-    .then((result) => sendResponse({ ok: true, ...result }))
-    .catch((error) => sendResponse({ ok: false, error: modelChoiceErrorMessage(error) }));
-  return true;
+  if (message?.type === 'chatcmd-chatgpt-model-options') {
+    void discoverChatGptChoices()
+      .then((result) => sendResponse({ ok: true, ...result }))
+      .catch((error) => sendResponse({ ok: false, error: modelChoiceErrorMessage(error) }));
+    return true;
+  }
+  if (message?.type === 'chatcmd-chatgpt-select-reasoning') {
+    void selectReasoning(message.reasoning)
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) => sendResponse({ ok: false, error: modelChoiceErrorMessage(error) }));
+    return true;
+  }
+  return false;
 });
 
 async function discoverChatGptChoices() {
@@ -161,6 +169,4 @@ function uniqueLabels(values) {
 function normalizeLabel(value) { return cleanLabel(value).toLowerCase(); }
 function delay(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 function modelChoiceErrorMessage(error) { return error instanceof Error ? error.message : String(error || 'Could not inspect ChatGPT choices.'); }
-
-globalThis.ChatCmdModelOptions = Object.freeze({ selectReasoning });
 })();
