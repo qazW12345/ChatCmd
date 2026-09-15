@@ -4,8 +4,9 @@ import { ChatGptBridgeTimeoutError } from './chatgpt/bridgeErrors';
 
 const REQUEST_TYPE = 'chatcmd-chatgpt-extension-request';
 const RESPONSE_TYPE = 'chatcmd-chatgpt-extension-response';
+const CHILD_ROUTE_PREFIX = '__CHATCMD_CHILD_ROUTE_V1__:';
 
-export const REQUIRED_CHATGPT_EXTENSION_VERSION = '0.1.18';
+export const REQUIRED_CHATGPT_EXTENSION_VERSION = '0.1.19';
 
 
 type BridgeCommand =
@@ -18,7 +19,7 @@ type BridgeCommand =
   | { action: 'logs'; nonce: string }
   | { action: 'clear-logs'; nonce: string }
   | { action: 'send'; nonce: string; requestId: string; submittedContent: string; model: string; conversationUrl?: string; newConversationUrl?: string; attachments?: ChatGptFileAttachmentPayload[]; localBaseUrl: string }
-  | { action: 'subagent-send'; nonce: string; subagentId: string; childTaskId: string; submittedContent: string; attempt: number; model: string; reasoning: string; conversationUrl?: string; newConversationUrl?: string; localBaseUrl: string }
+  | { action: 'subagent-send'; nonce: string; subagentId: string; childTaskId: string; submittedContent: string; attempt: number; model: string; conversationUrl?: string; newConversationUrl?: string; localBaseUrl: string }
   | { action: 'subagent-close'; nonce: string; subagentId: string }
   | { action: 'stop'; nonce: string; requestId: string; localBaseUrl: string }
   | { action: 'reconcile'; nonce: string; requestId: string }
@@ -79,9 +80,11 @@ export async function dispatchChatGptRequest(input: { requestId: string; submitt
 }
 
 export async function dispatchSubagentFallback(input: { subagentId: string; childTaskId: string; submittedContent: string; attempt: number; model?: string; reasoning?: string; conversationUrl?: string; newConversationUrl?: string }) {
+  const model = input.model?.trim() || 'Auto';
+  const reasoning = input.reasoning?.trim() || 'Auto';
   await bridge({
     action: 'subagent-send', nonce: nonce(), ...input,
-    model: input.model || 'Auto', reasoning: input.reasoning || 'Auto',
+    model: encodeChildRoute(model, reasoning),
     localBaseUrl: window.location.origin,
   }, 5_000);
 }
@@ -104,6 +107,11 @@ export async function recoverChatGptIdentity(requestId: string, submittedContent
 
 export async function resumeChatGptCompact(jobId: string, taskId: string) {
   await bridge({ action: 'compact-resume', nonce: nonce(), jobId, taskId, localBaseUrl: window.location.origin }, 5_000);
+}
+
+function encodeChildRoute(model: string, reasoning: string) {
+  if (reasoning.toLowerCase() === 'auto') return model;
+  return `${CHILD_ROUTE_PREFIX}${JSON.stringify({ model, reasoning })}`;
 }
 
 function bridge(command: BridgeCommand, timeoutMs: number) {
