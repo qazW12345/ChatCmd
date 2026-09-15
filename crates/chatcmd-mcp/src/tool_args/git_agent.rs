@@ -67,3 +67,27 @@ tool_args!(SubagentWaitArgs {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     report_version: Option<String>
 });
+
+#[cfg(test)]
+mod fleet_model_contract_tests {
+    use super::*;
+
+    #[test]
+    fn subagent_start_accepts_visible_model_label() {
+        let input = serde_json::from_value::<SubagentStartArgs>(serde_json::json!({
+            "name": "independent-reviewer",
+            "request": "Review exact candidate",
+            "model": "GPT-5.6 Sol"
+        }))
+        .expect("model field should be part of the public delegation contract");
+        assert_eq!(input.model.as_deref(), Some("GPT-5.6 Sol"));
+    }
+
+    #[test]
+    fn subagent_start_schema_advertises_model_field() {
+        let schema = serde_json::to_value(schemars::schema_for!(SubagentStartArgs))
+            .expect("subagent schema should serialize")
+            .to_string();
+        assert!(schema.contains("model"));
+    }
+}
