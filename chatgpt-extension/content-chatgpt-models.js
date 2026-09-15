@@ -10,8 +10,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       .catch((error) => sendResponse({ ok: false, error: modelChoiceErrorMessage(error) }));
     return true;
   }
-  if (message?.type === 'chatcmd-chatgpt-select-reasoning') {
-    void selectReasoning(message.reasoning)
+  if (message?.type === 'chatcmd-chatgpt-select-choices') {
+    void selectChoices(message.model, message.reasoning)
       .then(() => sendResponse({ ok: true }))
       .catch((error) => sendResponse({ ok: false, error: modelChoiceErrorMessage(error) }));
     return true;
@@ -30,23 +30,30 @@ async function discoverChatGptChoices() {
   };
 }
 
-async function selectReasoning(reasoning) {
-  const target = cleanReasoningLabel(reasoning);
+async function selectChoices(model, reasoning) {
+  await selectMenuChoice(model, findModelSwitcherButton, cleanModelLabel, 'model');
+  await selectMenuChoice(reasoning, findReasoningSwitcherButton, cleanReasoningLabel, 'reasoning mode');
+}
+
+async function selectMenuChoice(value, findButton, cleanLabel, kind) {
+  const target = cleanLabel(value);
   if (!target || /^auto$/i.test(target)) return;
-  const button = findReasoningSwitcherButton();
-  if (!button) throw new Error('ChatGPT is not currently showing a reasoning-effort selector. Use Auto in ChatCMD.');
+  const button = findButton();
+  if (!button) throw new Error(`ChatGPT is not currently showing a ${kind} selector. Use Auto in ChatCMD.`);
+  const current = cleanLabel(button.textContent || button.getAttribute('aria-label') || '');
+  if (normalizeLabel(current) === normalizeLabel(target)) return;
   const wasExpanded = button.getAttribute('aria-expanded') === 'true';
   if (!wasExpanded) button.click();
   const options = await waitForMenuOptions();
   const wanted = normalizeLabel(target);
-  const option = options.find((item) => normalizeLabel(optionLabel(item)) === wanted)
-    || options.find((item) => normalizeLabel(optionLabel(item)).includes(wanted));
+  const option = options.find((item) => normalizeLabel(cleanLabel(optionLabel(item))) === wanted)
+    || options.find((item) => normalizeLabel(cleanLabel(optionLabel(item))).includes(wanted));
   if (!option) {
     if (!wasExpanded) closeMenu(button);
-    throw new Error(`Could not find reasoning mode “${target}” in the ChatGPT menu.`);
+    throw new Error(`Could not find ${kind} “${target}” in the ChatGPT menu.`);
   }
   option.click();
-  await delay(150);
+  await delay(180);
 }
 
 async function discoverMenu(findButton, cleanLabel) {
@@ -144,16 +151,11 @@ function cleanReasoningLabel(value) {
   return text;
 }
 
-function cleanLabel(value) {
-  return String(value || '').replace(/\s+/g, ' ').trim();
-}
-
+function cleanLabel(value) { return String(value || '').replace(/\s+/g, ' ').trim(); }
 function looksLikeModelLabel(value) {
   const text = String(value || '').trim();
-  if (!text) return false;
-  return /^(?:GPT(?:[-\s]?[0-9][\w.-]*)?(?:\s+(?:Pro|Thinking|Instant|Mini|Sol|Luna))?|o[1-9](?:[-\s][\w.-]+)?)$/i.test(text);
+  return Boolean(text) && /^(?:GPT(?:[-\s]?[0-9][\w.-]*)?(?:\s+(?:Pro|Thinking|Instant|Mini|Sol|Luna))?|o[1-9](?:[-\s][\w.-]+)?)$/i.test(text);
 }
-
 function uniqueLabels(values) {
   const seen = new Set();
   const result = [];
@@ -165,7 +167,6 @@ function uniqueLabels(values) {
   }
   return result;
 }
-
 function normalizeLabel(value) { return cleanLabel(value).toLowerCase(); }
 function delay(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 function modelChoiceErrorMessage(error) { return error instanceof Error ? error.message : String(error || 'Could not inspect ChatGPT choices.'); }
