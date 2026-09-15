@@ -105,6 +105,11 @@ impl RuntimeHost {
             .and_then(Value::as_str)
             .map(str::trim)
             .filter(|value| !value.is_empty());
+        let requested_reasoning = registration
+            .get("reasoning")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty());
 
         let row = sqlx::query(
             "SELECT parent_task_id,parent_turn_id,name,status,fallback_state,fallback_attempts FROM subagent_runs WHERE id=? AND child_task_id=? LIMIT 1",
@@ -190,6 +195,7 @@ impl RuntimeHost {
                 "childTaskId": child_task_id,
                 "name": name,
                 "model": requested_model,
+                "reasoning": requested_reasoning,
                 "projectFolder": project_folder,
                 "submittedContent": submitted_content,
                 "attempt": attempt,
@@ -200,7 +206,8 @@ impl RuntimeHost {
         Ok(json!({
             "attempt": attempt,
             "maxAttempts": MAX_EXTENSION_FALLBACK_ATTEMPTS,
-            "model": requested_model
+            "model": requested_model,
+            "reasoning": requested_reasoning
         }))
     }
 }
