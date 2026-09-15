@@ -109,8 +109,67 @@ impl McpServer {
         {
             object.insert("model".to_owned(), Value::String(model.to_owned()));
         }
-        let tools = Self::tool_router().list_all();
+
         let registered = registration.clone();
+        let status = registration
+            .get("status")
+            .and_then(Value::as_str)
+            .unwrap_or("pending");
+        if requested_model.is_some() && status == "pending" {
+            // A concrete model label names a ChatGPT browser role. Force that route even when
+            // the MCP peer also supports native sampling; otherwise the requested role/model
+            // could be silently ignored.
+            match self
+                .runtime
+                .request_subagent_fallback(&context, &registration, &delegated_request)
+                .await
+            {
+                Ok(fallback) => {
+                    return CallToolResult::structured(
+                        crate::subagent_protocol::enrich_registration(
+                            registration,
+                            serde_json::json!({
+                                "dispatchMode": "extensionFallback",
+                                "nativeDelegationRequired": false,
+                                "status": "pending",
+                                "workerStarted": false,
+                                "fallbackRequested": true,
+                                "fallbackAttempt": fallback.get("attempt").cloned().unwrap_or(Value::Null),
+                                "instruction": "ChatCMD queued this explicitly modeled child for the ChatGPT browser extension. Do not duplicate the delegated work in the parent. Call agent_subagent_wait until the child finishes or the fallback exhausts its retries."
+                            }),
+                        ),
+                    );
+                }
+                Err(error) => {
+                    if let Some(child_task_id) = registered
+                        .get("childTaskId")
+                        .or_else(|| registered.get("taskId"))
+                        .and_then(Value::as_str)
+                    {
+                        let _ = self
+                            .runtime
+                            .fail_subagent(child_task_id, &error.message)
+                            .await;
+                    }
+                    let mut failed = registered;
+                    if let Some(object) = failed.as_object_mut() {
+                        object.insert("status".to_owned(), Value::String("failed".to_owned()));
+                        object.insert(
+                            "dispatchMode".to_owned(),
+                            Value::String("failed".to_owned()),
+                        );
+                        object.insert("workerStarted".to_owned(), Value::Bool(false));
+                        object.insert(
+                            "startupError".to_owned(),
+                            serde_json::json!({"code": error.code, "message": error.message}),
+                        );
+                    }
+                    return CallToolResult::structured(failed);
+                }
+            }
+        }
+
+        let tools = Self::tool_router().list_all();
         match subagent_worker::dispatch_registered_subagent(
             self.runtime.clone(),
             peer,
