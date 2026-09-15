@@ -35,6 +35,10 @@ struct SubagentApprovalGrantArgs {
 tool_args!(SubagentStartArgs {
     name: String,
     request: String,
+    /// Optional visible ChatGPT model label for browser-extension children. Supplying a
+    /// concrete model selects the browser route so the coordinator can separate worker roles.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    model: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     allowed_files: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
