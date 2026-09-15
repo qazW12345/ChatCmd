@@ -5,7 +5,7 @@ const RAW_BUBBLE_STABILITY_MS = 1_200;
 const SILENT_RETRY_GRACE_MS = 8_000;
 const ERROR_INTERRUPT_GRACE_MS = 2_500;
 const COMPLETION_PING_INTERVAL_MS = 1_000;
-const INTERRUPTED_PROGRESS_PROMPT = 'Tôi vừa bị gián đoạn kết nối. Vui lòng kiểm tra trạng thái công việc ở lượt trước. Nếu chưa hoàn tất, hãy tiếp tục từ trạng thái hiện tại và hoàn thành phần còn lại; không làm lại những phần đã xong. Nếu đã hoàn tất, hãy trả lại kết quả cuối.';
+const INTERRUPTED_PROGRESS_PROMPT = 'My connection was interrupted. Check the previous turn\'s work state. If the work is incomplete, continue from the current state and finish the remaining work without repeating completed parts. If it is already complete, return the final result.';
 const {
   assistantNodes, clickStopButton, findSendButton, findStopButton, findThreadError,
   findVisible, isVisible, latestMessageText, normalize,
@@ -35,11 +35,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === 'chatcmd-chatgpt-run') {
     const composer = findComposer();
     if (!composer || findStopButton() || globalThis.ChatCmdCompact?.busy) {
-      sendResponse({ ok: false, error: 'Tab ChatGPT chưa sẵn sàng nhận tin nhắn mới.' });
+      sendResponse({ ok: false, error: 'The ChatGPT tab is not ready to receive a new message.' });
       return false;
     }
     if (activeRequest && Date.now() - activeRequest.startedAt < 1_500) {
-      sendResponse({ ok: false, error: 'Tab ChatGPT này đang xử lý một yêu cầu khác.' });
+      sendResponse({ ok: false, error: 'This ChatGPT tab is already processing another request.' });
       return false;
     }
     if (document.documentElement?.dataset) document.documentElement.dataset.chatcmdRequestId = message.requestId;
@@ -53,7 +53,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
   if (message?.type === 'chatcmd-chatgpt-stop') {
     if (!activeRequest || activeRequest.id !== message.requestId) {
-      sendResponse({ ok: false, error: 'Không tìm thấy lượt ChatGPT đang chạy trên tab này.' });
+      sendResponse({ ok: false, error: 'No running ChatGPT request was found in this tab.' });
       return false;
     }
     activeRequest.stopRequested = true;
@@ -269,14 +269,14 @@ function isUsableComposer(element) {
 
 function composerMissingMessage() {
   const path = `${window.location.pathname}${window.location.search}` || '/';
-  return `Không tìm thấy ô nhập ChatGPT trên ${path}. Hãy kiểm tra tab ChatGPT đầu tiên đang ở giao diện chat và bạn đã đăng nhập.`;
+  return `Could not find the ChatGPT composer at ${path}. Make sure the ChatGPT tab is on the chat interface and you are signed in.`;
 }
 
 async function selectModel(model) {
   const target = String(model || '').trim();
   if (!target || ['auto', 'default', 'mặc định'].includes(target.toLowerCase())) return;
   const button = findModelSwitcherButton();
-  if (!button) throw new Error(`ChatGPT hiện không hiển thị bộ chọn model cụ thể. Hãy dùng Auto trên giao diện ChatCMD.`);
+  if (!button) throw new Error('ChatGPT is not currently showing a specific model selector. Use Auto in ChatCMD.');
   button.click();
   await delay(250);
   const option = await waitFor(() => {
@@ -284,7 +284,7 @@ async function selectModel(model) {
       .filter((item) => isVisible(item) && !item.closest('form[data-type="unified-composer"]'));
     const wanted = normalize(target);
     return candidates.find((item) => normalize(item.textContent).includes(wanted)) || null;
-  }, 4_000, `Không tìm thấy model “${target}” trong menu ChatGPT.`);
+  }, 4_000, `Could not find model “${target}” in the ChatGPT menu.`);
   option.click();
   await delay(200);
 }
@@ -361,7 +361,7 @@ const composerBridge = globalThis.ChatCmdComposerBridge.create({
 const attachFiles = (...args) => composerBridge.attachFiles(...args);
 let submitPrompt = (...args) => composerBridge.submitPrompt(...args);
 async function waitForConversationIdentity() {
-  return waitFor(currentConversationIdentity, 15_000, 'ChatGPT chưa tạo conversation ID trên URL.');
+  return waitFor(currentConversationIdentity, 15_000, 'ChatGPT has not created a conversation ID in the URL yet.');
 }
 
 function currentConversationIdentity() {
@@ -420,7 +420,7 @@ async function reportBrowserCompletion(requestId, assistantContent, completionEv
     }
     return true;
   } catch (error) {
-    if (!globalThis.ChatCmdRuntime.invalidated(error)) console.warn('[ChatCMD bridge] Không thể xác nhận raw bubble với backend.', error);
+    if (!globalThis.ChatCmdRuntime.invalidated(error)) console.warn('[ChatCMD bridge] Could not confirm the raw response bubble with the backend.', error);
     return false;
   }
 }
@@ -441,7 +441,7 @@ async function waitFor(factory, timeoutMs, message) {
   while (Date.now() - startedAt < timeoutMs) {
     const value = factory();
     if (value) return value;
-    if (activeRequest?.stopRequested) throw new Error('Đã dừng theo yêu cầu người dùng.');
+    if (activeRequest?.stopRequested) throw new Error('Stopped at the user\'s request.');
     await delay(120);
   }
   throw new Error(message);
@@ -459,7 +459,7 @@ function renderReturnToChatCmd(enabled) {
 }
 
 function delay(ms) { return globalThis.ChatCmdCaptureClock?.sleep(ms) ?? new Promise((resolve) => setTimeout(resolve, ms)); }
-function errorMessage(error) { return error instanceof Error ? error.message : String(error || 'Lỗi khi thao tác ChatGPT.'); }
+function errorMessage(error) { return error instanceof Error ? error.message : String(error || 'ChatGPT interaction error.'); }
 
 async function adoptObservedRequest(request, user = null) {
   if (activeRequest || !globalThis.ChatCmdRuntime.current(CONTENT_CONTEXT)) return;

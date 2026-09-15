@@ -9,6 +9,7 @@ import { useAppLanguage, tr } from './i18n';
 import { AgentsPage } from './pages/AgentsPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { LiveTerminalPage } from './pages/LiveTerminalPage';
+import { NewChatGptConversationPage } from './pages/NewChatGptConversationPage';
 import { SessionsPage, SessionDetailPage } from './pages/SessionsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SkillsPage } from './pages/SkillsPage';
@@ -21,13 +22,12 @@ import { GlobalSubagentFallbackBridge } from './tasks/GlobalSubagentFallbackBrid
 import { FunctionRail, TaskRail } from './tasks/TaskRail';
 import { useTaskDocumentTitle } from './tasks/taskDocumentTitle';
 import type { TimelineEvent } from './types';
-import { GlobalUpdatePrompt } from './updates/GlobalUpdatePrompt';
 
 const legacyPaths = ['/login', '/register', '/plans', '/account', '/payment', '/payments', '/purchase', '/checkout'];
 
 export default function App() {
   useAppLanguage();
-  return <AuthGate><RealtimeProvider><GlobalDocumentTitleBridge /><SoundNotificationsBridge /><GlobalSubagentFallbackBridge /><GlobalConversationApprovalQueue /><GlobalPlanQuestionQueue /><GlobalChatGptExtensionPrompt /><GlobalUpdatePrompt /><Routes><Route element={<Shell />}><Route index element={<DashboardPage />} /><Route path="tasks/:taskId?" element={<TasksPage />} /><Route path="sessions" element={<SessionsPage />} /><Route path="sessions/terminal/:sessionId" element={<LiveTerminalPage />} /><Route path="sessions/:sessionId" element={<SessionDetailPage />} /><Route path="agents" element={<AgentsPage />} /><Route path="skills" element={<SkillsPage />} /><Route path="settings" element={<SettingsPage />} /><Route path="extension/setup" element={<ExtensionSetupPage />} />{legacyPaths.map((path) => <Route key={path} path={path} element={<Navigate replace to="/" />} />)}<Route path="*" element={<NotFound />} /></Route></Routes></RealtimeProvider></AuthGate>;
+  return <AuthGate><RealtimeProvider><GlobalDocumentTitleBridge /><SoundNotificationsBridge /><GlobalSubagentFallbackBridge /><GlobalConversationApprovalQueue /><GlobalPlanQuestionQueue /><GlobalChatGptExtensionPrompt /><Routes><Route element={<Shell />}><Route index element={<DashboardPage />} /><Route path="tasks/new" element={<NewChatGptConversationPage />} /><Route path="tasks/:taskId?" element={<TasksPage />} /><Route path="sessions" element={<SessionsPage />} /><Route path="sessions/terminal/:sessionId" element={<LiveTerminalPage />} /><Route path="sessions/:sessionId" element={<SessionDetailPage />} /><Route path="agents" element={<AgentsPage />} /><Route path="skills" element={<SkillsPage />} /><Route path="settings" element={<SettingsPage />} /><Route path="extension/setup" element={<ExtensionSetupPage />} />{legacyPaths.map((path) => <Route key={path} path={path} element={<Navigate replace to="/" />} />)}<Route path="*" element={<NotFound />} /></Route></Routes></RealtimeProvider></AuthGate>;
 }
 
 function GlobalDocumentTitleBridge() {

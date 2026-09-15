@@ -6,10 +6,12 @@ import type { TimelineEvent } from '../types';
 import { canonicalProjectPath } from './workspaceProjects';
 import { ChatGptBridgeTimeoutError } from '../chatgpt/bridgeErrors';
 
+type RoutedSubagentFallbackRequest = SubagentFallbackRequest & { model?: string };
+
 export function GlobalSubagentFallbackBridge() {
   const inFlight = useRef(new Set<string>());
 
-  const dispatchFallback = useCallback(async (fallback: SubagentFallbackRequest) => {
+  const dispatchFallback = useCallback(async (fallback: RoutedSubagentFallbackRequest) => {
     if (!isDispatchable(fallback)) return;
     const key = `${fallback.subagentId}:${fallback.attempt}`;
     if (inFlight.current.has(key)) return;
@@ -27,6 +29,7 @@ export function GlobalSubagentFallbackBridge() {
         childTaskId: fallback.childTaskId,
         submittedContent: fallback.submittedContent,
         attempt: fallback.attempt,
+        model: fallback.model,
         conversationUrl: fallback.conversationUrl ?? undefined,
         newConversationUrl,
       });
@@ -55,7 +58,7 @@ export function GlobalSubagentFallbackBridge() {
 
   const recoverPending = useCallback(async () => {
     try {
-      const pending = await api.pendingSubagentFallbacks();
+      const pending: RoutedSubagentFallbackRequest[] = await api.pendingSubagentFallbacks();
       const resumable = pending.filter((fallback) => Boolean(fallback.conversationUrl?.trim()));
       await Promise.all(resumable.map(dispatchFallback));
     } catch {
@@ -85,7 +88,7 @@ export function GlobalSubagentFallbackBridge() {
   return null;
 }
 
-function fallbackFromPayload(payload: Record<string, unknown>): SubagentFallbackRequest | null {
+function fallbackFromPayload(payload: Record<string, unknown>): RoutedSubagentFallbackRequest | null {
   const subagentId = stringValue(payload.subagentId);
   const childTaskId = stringValue(payload.childTaskId);
   const submittedContent = stringValue(payload.submittedContent);
@@ -100,13 +103,14 @@ function fallbackFromPayload(payload: Record<string, unknown>): SubagentFallback
     parentTaskId: stringValue(payload.parentTaskId) || undefined,
     parentTurnId: stringValue(payload.parentTurnId) || undefined,
     name: stringValue(payload.name) || 'Sub-agent',
+    model: stringValue(payload.model) || undefined,
     projectFolder: stringValue(payload.projectFolder) || undefined,
     conversationId: stringValue(payload.conversationId) || undefined,
     conversationUrl: stringValue(payload.conversationUrl) || undefined,
   };
 }
 
-function isDispatchable(value: SubagentFallbackRequest) {
+function isDispatchable(value: RoutedSubagentFallbackRequest) {
   return Boolean(
     value.subagentId.trim()
       && value.childTaskId.trim()

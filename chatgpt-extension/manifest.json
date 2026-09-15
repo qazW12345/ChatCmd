@@ -1,11 +1,34 @@
 {
   "manifest_version": 3,
   "name": "ChatCMD ChatGPT Bridge",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "description": "Bridges the local ChatCMD console to an already signed-in chatgpt.com tab.",
   "permissions": ["tabs", "storage", "scripting", "alarms"],
   "host_permissions": ["https://chatgpt.com/*", "http://localhost/*", "http://127.0.0.1/*"],
-  "background": { "service_worker": "background.js" },
+  "background": {
+    "service_worker": "background-entry.js",
+    "scripts": [
+      "firefox-background-compat.js",
+      "background-io.js",
+      "background-tabs.js",
+      "approval-bridge.js",
+      "background-recovery.js",
+      "background-capture.js",
+      "background-clock.js",
+      "background-subagent-heartbeat.js",
+      "background-subagent-failure.js",
+      "compact-protocol.js",
+      "background-compact-destination.js",
+      "background-compact.js",
+      "background.js",
+      "background-model-options.js"
+    ]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "chatcmd-fleet@local"
+    }
+  },
   "web_accessible_resources": [
     { "resources": ["sounds/sound_exe.mp3"], "matches": ["https://chatgpt.com/*"] }
   ],
@@ -14,7 +37,7 @@
       "matches": ["https://chatgpt.com/*"],
       "js": [
         "content-runtime.js", "content-chatgpt-clock.js", "content-chatgpt-render.js",
-        "content-chatgpt-ui.js", "content-chatgpt-dom.js", "content-chatgpt-transcript.js",
+        "content-chatgpt-ui.js", "content-chatgpt-dom.js", "content-chatgpt-models.js", "content-chatgpt-transcript.js",
         "content-chatgpt-observer.js", "content-chatgpt-approval-ui.js", "content-chatgpt-monitor.js",
         "content-chatgpt-compose.js", "content-chatgpt.js", "compact-protocol.js", "content-chatgpt-compact.js",
         "content-chatgpt-resume.js", "content-chatgpt-native.js"

@@ -106,13 +106,13 @@
       item.dataset.done = String(index < at);
       return item;
     }));
-    panel.querySelector('p').textContent = job.detail || 'ChatCMD giữ nguyên cuộc trò chuyện và lịch sử. Bạn có thể quay lại sau nếu tab bị đóng.';
+    panel.querySelector('p').textContent = job.detail || 'ChatCMD preserves the conversation and history. You can return later if the tab is closed.';
   }
   function probe(job, kind) {
-    if (!isCurrent() || !ownsPage(job, kind)) throw new Error('Cuộc trò chuyện đã thay đổi; không gửi hoặc thu thập nội dung.');
+    if (!isCurrent() || !ownsPage(job, kind)) throw new Error('The conversation changed; do not send or collect content.');
     show(job);
     const marked = markedUser(job, kind);
-    if (marked.duplicate) throw new Error('Có nhiều tin nhắn mang cùng mã compact; cần kiểm tra thủ công, không tự chọn một phản hồi.');
+    if (marked.duplicate) throw new Error('Multiple messages have the same compact marker; manual inspection is required, so no response will be selected automatically.');
     let text = '';
     if (marked.user && marked.last && kind === 'HANDOFF') {
       const parts = transcript.readParts(marked.user).filter((part) => part.kind === 'answer');
@@ -129,7 +129,7 @@
       threadError: Boolean(dom.findThreadError()) };
   }
   async function prepare(job, kind, expectedToken) {
-    if (expectedToken !== documentToken || !isCurrent() || !ownsPage(job, kind)) throw new Error('Tab đã được tải lại; đang khôi phục trước khi gửi.');
+    if (expectedToken !== documentToken || !isCurrent() || !ownsPage(job, kind)) throw new Error('The tab was reloaded; recovering state before sending.');
     show(job);
     if (kind === 'HANDOFF' && dom.findStopButton()) { dom.clickStopButton(); return { ready: false }; }
     if (dom.findStopButton()) return { ready: false };
@@ -139,11 +139,11 @@
     if (!composer) return { ready: false };
     const prompt = promptFor(job, kind, composer);
     const text = composerText(composer);
-    if (text && !promptMatches(composer, prompt)) throw new Error('Ô nhập đang có bản nháp. Bản nháp được giữ nguyên; hãy lưu hoặc xóa bản nháp để tiếp tục compact.');
+    if (text && !promptMatches(composer, prompt)) throw new Error('The composer contains a draft. The draft was preserved; save or clear it before continuing compaction.');
     if (kind === 'RESUME' && !text) await controller.selectModel(job.oldModel);
     if (!isCurrent() || !ownsPage(job, kind)) return { ready: false };
     composer = controller.findComposer();
-    if (!composer || composerText(composer) !== text) throw new Error('Bản nháp đã thay đổi trong khi chuẩn bị. Nội dung mới của bạn được giữ nguyên.');
+    if (!composer || composerText(composer) !== text) throw new Error('The draft changed during preparation. Your new content was preserved.');
     if (!promptMatches(composer, prompt)) {
       controller.setComposerText(composer, prompt);
       globalThis.ChatCmdRenderBridge?.pulse();
@@ -153,14 +153,14 @@
     return { ready: promptMatches(controller.findComposer(), prompt) && Boolean(readySendButton()), documentToken };
   }
   async function dispatch(job, kind, expectedToken) {
-    if (dispatching || expectedToken !== documentToken || !isCurrent() || !ownsPage(job, kind)) throw new Error('Không thể gửi: tài liệu ChatGPT đã thay đổi.');
+    if (dispatching || expectedToken !== documentToken || !isCurrent() || !ownsPage(job, kind)) throw new Error('Cannot send: the ChatGPT document changed.');
     const key = `${kind}:${job.id}`;
     const marked = markedUser(job, kind);
-    if (marked.duplicate) throw new Error('Có nhiều tin nhắn cùng mã compact; không gửi thêm.');
+    if (marked.duplicate) throw new Error('Multiple messages have the same compact marker; no additional message will be sent.');
     if (marked.user || dispatched.has(key)) return { sent: true };
     const composer = controller.findComposer();
     const prompt = promptFor(job, kind, composer);
-    if (!composer || !promptMatches(composer, prompt)) throw new Error('Bản nháp đã thay đổi; compact không ghi đè nội dung.');
+    if (!composer || !promptMatches(composer, prompt)) throw new Error('The draft changed; compaction will not overwrite it.');
     const button = readySendButton();
     // This explicit acknowledgement is the ONLY safe retry proof. Exceptions and
     // missing responses remain ambiguous and must keep the durable dispatch fence.

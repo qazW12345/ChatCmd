@@ -8,13 +8,13 @@
     const button = document.createElement('button');
     button.id = id;
     button.type = 'button';
-    button.setAttribute('aria-label', 'Quay lại ChatCMD');
-    button.title = 'Quay lại ChatCMD';
+    button.setAttribute('aria-label', 'Back to ChatCMD');
+    button.title = 'Back to ChatCMD';
     button.innerHTML = `
       <span data-chatcmd-return-icon aria-hidden="true">↩</span>
       <span data-chatcmd-return-copy>
-        <strong>Quay lại ChatCMD</strong>
-        <small>Bấm để trở về</small>
+        <strong>Back to ChatCMD</strong>
+        <small>Click to return</small>
       </span>
       <i data-chatcmd-return-dot aria-hidden="true"></i>
     `;
@@ -77,11 +77,11 @@
     button.addEventListener('click', () => {
       button.disabled = true;
       button.style.opacity = '.7';
-      copy.querySelector('small').textContent = 'Đang quay lại…';
+      copy.querySelector('small').textContent = 'Returning…';
       globalThis.ChatCmdRuntime.sendMessage({ type: 'chatcmd-return-to-source' }, () => {
         button.disabled = false;
         button.style.opacity = '';
-        copy.querySelector('small').textContent = 'Bấm để trở về';
+        copy.querySelector('small').textContent = 'Click to return';
       });
     });
 
@@ -107,10 +107,10 @@
         </svg>
       </span>
       <span data-chatcmd-warning-copy>
-        <strong>Đừng thao tác với tab ChatGPT này</strong>
-        <span>Tab ChatGPT này đang được xử lý bởi ChatCMD, xin đừng thao tác trên tab trình duyệt này khi bạn vẫn đang sử dụng trên ChatCMD vì có thể gây lỗi cho bên ChatCMD. Chỉ đóng tab này nếu như bạn không còn sử dụng bên ChatCMD nữa.</span>
+        <strong>Don't interact with this ChatGPT tab</strong>
+        <span>This ChatGPT tab is being controlled by ChatCMD. Please don't interact with it while ChatCMD is using it, as that can disrupt the active task. Close this tab only when you no longer need it in ChatCMD.</span>
       </span>
-      <span data-chatcmd-warning-state><i></i> ChatCMD đang sử dụng</span>
+      <span data-chatcmd-warning-state><i></i> In use by ChatCMD</span>
     `;
     Object.assign(banner.style, {
       position: 'fixed', left: '24px', top: '24px', zIndex: '2147483646',

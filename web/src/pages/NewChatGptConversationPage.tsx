@@ -1,27 +1,25 @@
-import { Bot, CircleAlert, CircleStop, ExternalLink, FolderOpen, LoaderCircle, MessageSquarePlus, Send, ShieldCheck, Unplug, X } from 'lucide-react';
+import { Bot, CircleAlert, FolderOpen, LoaderCircle, MessageSquarePlus, Send, ShieldCheck, Unplug, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ClipboardEvent, FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { api } from '../api';
-import { chatGptExtensionAvailable, chatGptExtensionStatus, closeChatGptConversationTab, dispatchChatGptRequest, focusChatGptConversationTab, openChatGptConversationTab, reconcileChatGptRequest, recoverChatGptIdentity, stopChatGptRequest } from '../chatgptBridge';
+import { ChatGptAttachmentPreview } from '../chatgpt/ChatGptAttachmentPreview';
+import { ChatGptModelPicker } from '../chatgpt/ChatGptModelPicker';
+import { ComposerFileInput } from '../chatgpt/ComposerFileInput';
+import { orderAgentsByRecentUse, rememberAgentUse } from '../chatgpt/agentRecency';
+import { fileAttachmentPayloads, messageContentWithTextAttachments, textAttachmentFromPaste, type ChatGptTextAttachment } from '../chatgpt/pasteAttachments';
+import { chatGptExtensionStatus, dispatchChatGptRequest } from '../chatgptBridge';
 import { applyChatGptChoices } from '../chatgptModelBridge';
 import { Modal } from '../components';
 import { tr } from '../i18n';
 import { canonicalProjectPath } from '../tasks/workspaceProjects';
 import type { Agent } from '../types';
-import { orderAgentsByRecentUse, rememberAgentUse } from './agentRecency';
 import { useLoad } from '../useLoad';
-import { ComposerFileInput } from './ComposerFileInput';
-import { ChatGptAttachmentPreview } from './ChatGptAttachmentPreview';
-import { ChatGptModelPicker } from './ChatGptModelPicker';
-export { ChatGptTaskComposer } from './ChatGptTaskComposer';
-import { useCompactBridgeSync } from './compact/useCompactBridgeSync';
-import { fileAttachmentPayloads, messageContentWithTextAttachments, textAttachmentFromPaste, type ChatGptTextAttachment } from './pasteAttachments';
 
-const DEFAULT_MODEL = 'Auto';
+const AUTO = 'Auto';
 
-export function NewChatGptConversation() {
+export function NewChatGptConversationPage() {
   const agents = useLoad(api.agents, []);
   const projects = useLoad(api.workspaceProjects, []);
   const location = useLocation();
@@ -33,6 +31,7 @@ export function NewChatGptConversation() {
     const enabled = (agents.data ?? []).filter((agent) => agent.enabled);
     return preferRecentAgents ? orderAgentsByRecentUse(enabled) : enabled;
   }, [agents.data, preferRecentAgents]);
+
   const [agentId, setAgentId] = useState('');
   const agentLaunchKey = useRef(location.key);
   const [projectFolder, setProjectFolder] = useState(launchProjectFolder);
@@ -41,15 +40,22 @@ export function NewChatGptConversation() {
   const [textAttachments, setTextAttachments] = useState<ChatGptTextAttachment[]>([]);
   const pasteSequence = useRef(0);
   const [folderPicking, setFolderPicking] = useState(false);
-  const [model, setModel] = useState(DEFAULT_MODEL);
-  const [reasoning, setReasoning] = useState(DEFAULT_MODEL);
+  const [model, setModel] = useState(AUTO);
+  const [reasoning, setReasoning] = useState(AUTO);
   const [confirmWithoutFolder, setConfirmWithoutFolder] = useState(false);
   const [extensionReady, setExtensionReady] = useState<boolean | null>(null);
   const [chatGptTabOpen, setChatGptTabOpen] = useState<boolean | null>(null);
-  const selectedProject = useMemo(() => (projects.data ?? []).find((project) => canonicalProjectPath(project.path) === canonicalProjectPath(projectFolder)), [projectFolder, projects.data]);
-  const newConversationUrl = selectedProject?.chatGptProjectUrl?.trim() || (canonicalProjectPath(projectFolder) === canonicalProjectPath(launchProjectFolder) ? launchProjectChatGptUrl : '') || undefined;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  const selectedProject = useMemo(
+    () => (projects.data ?? []).find((project) => canonicalProjectPath(project.path) === canonicalProjectPath(projectFolder)),
+    [projectFolder, projects.data],
+  );
+  const newConversationUrl = selectedProject?.chatGptProjectUrl?.trim()
+    || (canonicalProjectPath(projectFolder) === canonicalProjectPath(launchProjectFolder) ? launchProjectChatGptUrl : '')
+    || undefined;
+
   useEffect(() => {
     const routeChanged = agentLaunchKey.current !== location.key;
     if (routeChanged) agentLaunchKey.current = location.key;
@@ -57,10 +63,11 @@ export function NewChatGptConversation() {
     if ((routeChanged || !currentAvailable) && enabledAgents[0]) setAgentId(enabledAgents[0].id);
     if (!enabledAgents.length && agentId) setAgentId('');
   }, [agentId, enabledAgents, location.key]);
+
   useEffect(() => {
-    if (!launchProjectFolder) return;
-    setProjectFolder(launchProjectFolder);
+    if (launchProjectFolder) setProjectFolder(launchProjectFolder);
   }, [launchProjectFolder]);
+
   useEffect(() => {
     let disposed = false;
     const refresh = () => void chatGptExtensionStatus().then((status) => {
@@ -73,26 +80,20 @@ export function NewChatGptConversation() {
     return () => { disposed = true; window.clearInterval(timer); };
   }, []);
 
-  const setProjectFolderFromUser = (path: string) => {
-    setProjectFolder(path);
-  };
-
-  const selectAgent = (nextAgentId: string) => {
-    setAgentId(nextAgentId);
-  };
-
   const pickFolder = async () => {
     if (busy || folderPicking) return;
     setFolderPicking(true); setError('');
     try {
       const result = await api.pickProjectFolder();
       if (result.path) {
-        setProjectFolderFromUser(result.path);
+        setProjectFolder(result.path);
         setFolderMenuOpen(false);
       }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : tr('Could not open the folder picker.'));
-    } finally { setFolderPicking(false); }
+    } finally {
+      setFolderPicking(false);
+    }
   };
 
   const handlePaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
@@ -103,6 +104,7 @@ export function NewChatGptConversation() {
     pasteSequence.current += 1;
     setTextAttachments((current) => [...current, attachment]);
   };
+
   const effectiveContent = messageContentWithTextAttachments(content, textAttachments);
 
   const sendNewConversation = async (allowWithoutFolder: boolean) => {
@@ -111,18 +113,33 @@ export function NewChatGptConversation() {
       setConfirmWithoutFolder(true);
       return;
     }
+
     setConfirmWithoutFolder(false);
     setBusy(true); setError('');
     try {
       const status = await chatGptExtensionStatus();
-      setExtensionReady(status.ready); setChatGptTabOpen(status.chatGptTabOpen);
+      setExtensionReady(status.ready);
+      setChatGptTabOpen(status.chatGptTabOpen);
       if (!status.ready) throw new Error(tr('ChatCMD ChatGPT Bridge extension is not ready. Enable or reload it, then try again.'));
+
       await applyChatGptChoices(model, reasoning, newConversationUrl);
-      const request = await api.createChatGptRequest({ agentId, model, projectFolder: projectFolder.trim(), content: effectiveContent });
+      const request = await api.createChatGptRequest({
+        agentId,
+        model,
+        projectFolder: projectFolder.trim(),
+        content: effectiveContent,
+      });
       rememberAgentUse(agentId);
-      // The prepared tab already has the selected model/reasoning. Send Auto here so
-      // the runner preserves that exact browser state while the backend records model.
-      await dispatchChatGptRequest({ requestId: request.id, submittedContent: request.submittedContent, model: DEFAULT_MODEL, newConversationUrl, attachments: fileAttachmentPayloads(textAttachments) });
+      // The inactive prepared tab already carries the selected browser state. Keep
+      // the send path on Auto so it does not reopen the model menu and reset a
+      // separately selected reasoning effort; the backend still records `model`.
+      await dispatchChatGptRequest({
+        requestId: request.id,
+        submittedContent: request.submittedContent,
+        model: AUTO,
+        newConversationUrl,
+        attachments: fileAttachmentPayloads(textAttachments),
+      });
       const taskId = await waitForTaskBinding(request.id);
       navigate(`/tasks/${encodeURIComponent(taskId)}`, { replace: true });
     } catch (reason) {
@@ -146,12 +163,14 @@ export function NewChatGptConversation() {
           <div><strong>ChatGPT</strong><small>{tr('Send using the signed-in ChatGPT session in Chrome / Edge.')}</small></div>
         </div>
         <div className="chatgpt-chat-controls">
-          <span className={`chatgpt-connection-dot ${extensionReady === false ? 'missing' : extensionReady ? 'ready' : ''}`} title={extensionReady === null ? tr('Checking extension…') : extensionReady ? tr('Extension ready') : tr('Extension not connected')}>{extensionReady === null ? <LoaderCircle className="spin" /> : extensionReady ? <MessageSquarePlus /> : <Unplug />}</span>
+          <span className={`chatgpt-connection-dot ${extensionReady === false ? 'missing' : extensionReady ? 'ready' : ''}`} title={extensionReady === null ? tr('Checking extension…') : extensionReady ? tr('Extension ready') : tr('Extension not connected')}>
+            {extensionReady === null ? <LoaderCircle className="spin" /> : extensionReady ? <MessageSquarePlus /> : <Unplug />}
+          </span>
           <button className="chatgpt-log-link" type="button" onClick={() => window.dispatchEvent(new Event('chatcmd:open-extension-logs'))}>{tr('View extension logs')}</button>
         </div>
       </header>
 
-      {extensionReady && chatGptTabOpen === false && <div className="chatgpt-chat-notice" role="status"><CircleAlert /><span><strong>{tr('No blank ChatGPT tab is open for a new conversation.')}</strong> {tr('After you send the message, ChatCMD will automatically open a new ChatGPT tab and continue there.')}</span></div>}
+      {extensionReady && chatGptTabOpen === false && <div className="chatgpt-chat-notice" role="status"><CircleAlert /><span><strong>{tr('No blank ChatGPT tab is open for a new conversation.')}</strong> {tr('ChatCMD will open an inactive ChatGPT tab as needed to inspect choices and send the request.')}</span></div>}
 
       <div className="chatgpt-chat-thread" aria-live="polite">
         <div className="chatgpt-ai-message">
@@ -164,7 +183,7 @@ export function NewChatGptConversation() {
       <form className="chatgpt-chat-composer" onSubmit={(event) => void submit(event)}>
         {error && <p className="chatgpt-form-error" role="alert"><CircleAlert />{error}</p>}
         <div className="chatgpt-composer-context">
-          <label className="chatgpt-agent-picker chatgpt-composer-agent"><span>{tr('MCP agent')}</span><select value={agentId} onChange={(event) => selectAgent(event.target.value)} disabled={busy || agents.loading} required>
+          <label className="chatgpt-agent-picker chatgpt-composer-agent"><span>{tr('MCP agent')}</span><select value={agentId} onChange={(event) => setAgentId(event.target.value)} disabled={busy || agents.loading} required>
             {!enabledAgents.length && <option value="">{tr('No enabled agent')}</option>}
             {enabledAgents.map((agent) => <option value={agent.id} key={agent.id}>@{agent.name}</option>)}
           </select></label>
@@ -174,7 +193,7 @@ export function NewChatGptConversation() {
               <button className={`chatgpt-folder-select ${projectFolder ? '' : 'empty'}`} type="button" onClick={() => { setFolderMenuOpen(true); void projects.reload(); }} disabled={busy} title={projectFolder || tr('Choose project folder')}>
                 <FolderOpen /><span>{projectFolder || tr('Choose folder')}</span>
               </button>
-              {projectFolder && <button className="chatgpt-folder-clear" type="button" onClick={() => setProjectFolderFromUser('')} disabled={busy} aria-label={tr('Clear folder selection')}><X /></button>}
+              {projectFolder && <button className="chatgpt-folder-clear" type="button" onClick={() => setProjectFolder('')} disabled={busy} aria-label={tr('Clear folder selection')}><X /></button>}
             </div>
           </div>
           <ChatGptModelPicker
@@ -187,6 +206,7 @@ export function NewChatGptConversation() {
             newConversationUrl={newConversationUrl}
           />
         </div>
+
         {textAttachments.length > 0 && <div className="chatgpt-message-attachments" aria-label={tr('Attachments for the next message')}>
           {textAttachments.map((attachment) => <ChatGptAttachmentPreview key={attachment.id} attachment={attachment} onRemove={() => setTextAttachments((current) => current.filter((item) => item.id !== attachment.id))} />)}
         </div>}
@@ -206,7 +226,11 @@ export function NewChatGptConversation() {
         <div className="chatgpt-chat-composer-meta"><span>{selectedAgent ? tr('Send to @{name}', { name: selectedAgent.name }) : tr('No enabled agent')}</span><span><ShieldCheck />{tr('Actual message')}: <code>{selectedPrompt(enabledAgents, agentId, projectFolder, effectiveContent)}</code></span></div>
       </form>
     </section>
-    {folderMenuOpen && <Modal className="workspace-folder-modal" title={tr('Choose project folder')} description={tr('Choose a saved project or open the folder picker on this computer.')} close={() => !folderPicking && setFolderMenuOpen(false)}><div className="workspace-folder-choices"><div className="workspace-folder-project-list">{projects.loading ? <p className="workspace-folder-empty"><LoaderCircle className="spin" /> {tr('Loading projects…')}</p> : projects.data?.length ? projects.data.map((project) => <button className={`workspace-folder-project ${canonicalProjectPath(projectFolder) === canonicalProjectPath(project.path) ? 'selected' : ''}`} type="button" onClick={() => { setProjectFolderFromUser(project.path); setFolderMenuOpen(false); }} key={project.id}><strong>{project.name}</strong><small>{project.path}</small></button>) : <p className="workspace-folder-empty">{projects.error || tr('No saved projects yet.')}</p>}</div><button className="workspace-folder-browse" type="button" onClick={() => void pickFolder()} disabled={folderPicking}>{folderPicking ? <LoaderCircle className="spin" /> : <FolderOpen />}<span><strong>{tr('Choose folder')}</strong><small>{tr('Open the folder picker on this computer')}</small></span></button></div></Modal>}
+
+    {folderMenuOpen && <Modal className="workspace-folder-modal" title={tr('Choose project folder')} description={tr('Choose a saved project or open the folder picker on this computer.')} close={() => !folderPicking && setFolderMenuOpen(false)}>
+      <div className="workspace-folder-choices"><div className="workspace-folder-project-list">{projects.loading ? <p className="workspace-folder-empty"><LoaderCircle className="spin" /> {tr('Loading projects…')}</p> : projects.data?.length ? projects.data.map((project) => <button className={`workspace-folder-project ${canonicalProjectPath(projectFolder) === canonicalProjectPath(project.path) ? 'selected' : ''}`} type="button" onClick={() => { setProjectFolder(project.path); setFolderMenuOpen(false); }} key={project.id}><strong>{project.name}</strong><small>{project.path}</small></button>) : <p className="workspace-folder-empty">{projects.error || tr('No saved projects yet.')}</p>}</div><button className="workspace-folder-browse" type="button" onClick={() => void pickFolder()} disabled={folderPicking}>{folderPicking ? <LoaderCircle className="spin" /> : <FolderOpen />}<span><strong>{tr('Choose folder')}</strong><small>{tr('Open the folder picker on this computer')}</small></span></button></div>
+    </Modal>}
+
     {confirmWithoutFolder && <div className="modal-backdrop chatgpt-folder-warning-backdrop">
       <div className="modal chatgpt-folder-warning" role="alertdialog" aria-modal="true" aria-labelledby="chatgpt-folder-warning-title">
         <span className="chatgpt-folder-warning-icon"><CircleAlert /></span>
@@ -215,23 +239,6 @@ export function NewChatGptConversation() {
       </div>
     </div>}
   </div>;
-}
-
-export function ChatGptTaskCard({ taskId }: { taskId: string }) {
-  const bridge = useLoad(() => api.chatGptBridge(taskId), [taskId]);
-  const refreshBridge = bridge.refresh;
-  useCompactBridgeSync(bridge.data, refreshBridge);
-  useEffect(() => {
-    if (bridge.data?.conversationUrl) return;
-    const timer = window.setInterval(() => void refreshBridge(), 2_000);
-    return () => window.clearInterval(timer);
-  }, [bridge.data?.conversationUrl, refreshBridge]);
-  if (!bridge.data) return null;
-  return <section className="task-info-section chatgpt-task-card"><strong>ChatGPT.com</strong><div><Bot /><span><b>{bridge.data.model}</b><small>{bridge.data.conversationId || tr('Syncing conversation ID…')}</small></span></div>{bridge.data.conversationUrl && <a href={bridge.data.conversationUrl} target="_blank" rel="noreferrer noopener"><ExternalLink />{tr('Open original conversation')}</a>}</section>;
-}
-
-function ExtensionState({ ready }: { ready: boolean | null }) {
-  return <div className={`chatgpt-extension-state ${ready === false ? 'missing' : ready ? 'ready' : ''}`}>{ready === null ? <LoaderCircle className="spin" /> : ready ? <MessageSquarePlus /> : <Unplug />}<div><strong>{ready === null ? tr('Checking extension…') : ready ? tr('Extension ready') : tr('Extension not connected')}</strong><span>{ready === false ? tr('Install the extension from the chatgpt-extension folder, then reload this page.') : tr('Does not read cookies/tokens; the extension operates directly on the signed-in chatgpt.com tab.')}</span></div></div>;
 }
 
 async function waitForTaskBinding(requestId: string) {
@@ -257,14 +264,14 @@ function routeProjectFolder(state: unknown) {
   const value = (state as Record<string, unknown>).projectFolder;
   return typeof value === 'string' ? value.trim() : '';
 }
+
 function routeProjectChatGptUrl(state: unknown) {
   if (!state || typeof state !== 'object' || Array.isArray(state)) return '';
   const value = (state as Record<string, unknown>).chatGptProjectUrl;
   return typeof value === 'string' ? value.trim() : '';
 }
+
 function routeAgentOrder(state: unknown) {
   if (!state || typeof state !== 'object' || Array.isArray(state)) return '';
   return (state as Record<string, unknown>).agentOrder === 'recent' ? 'recent' : '';
 }
-
-function errorText(reason: unknown) { return reason instanceof Error ? reason.message : tr('Could not complete the ChatGPT request.'); }
