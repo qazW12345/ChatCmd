@@ -165,33 +165,6 @@ fn subagent_id_for_registration(
     )
 }
 
-fn subagent_id_for_registration_with_model(
-    parent_task_id: &str,
-    parent_turn_id: &str,
-    name: &str,
-    request: &str,
-    model: Option<&str>,
-    approval_grant_json: Option<&str>,
-) -> String {
-    let Some(model) = model.map(str::trim).filter(|value| !value.is_empty()) else {
-        return subagent_id_for_registration(
-            parent_task_id,
-            parent_turn_id,
-            name,
-            request,
-            approval_grant_json,
-        );
-    };
-    let material = format!(
-        "{parent_task_id}\0{parent_turn_id}\0{name}\0{request}\0model={model}\0{}",
-        approval_grant_json.unwrap_or_default()
-    );
-    format!(
-        "subagent-{}",
-        Uuid::new_v5(&Uuid::NAMESPACE_OID, material.as_bytes())
-    )
-}
-
 fn subagent_registration_value(
     subagent_id: &str,
     child_task_id: &str,
@@ -209,16 +182,6 @@ fn subagent_registration_value(
         "delegationMarker": format!("{SUBAGENT_MARKER_PREFIX}{subagent_id}"),
         "instruction": "Include delegationMarker verbatim in the child agent request. The child must preserve it in its first agent_user_message call."
     })
-}
-
-fn with_requested_model(mut registration: Value, model: Option<&str>) -> Value {
-    let Some(model) = model.map(str::trim).filter(|value| !value.is_empty()) else {
-        return registration;
-    };
-    if let Some(object) = registration.as_object_mut() {
-        object.insert("model".to_owned(), Value::String(model.to_owned()));
-    }
-    registration
 }
 
 fn child_task_id_for_subagent(subagent_id: &str) -> String {
@@ -239,10 +202,7 @@ fn extract_subagent_id(message: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        child_task_id_for_subagent, extract_subagent_id, subagent_id_for_registration,
-        subagent_id_for_registration_with_model,
-    };
+    use super::{child_task_id_for_subagent, extract_subagent_id, subagent_id_for_registration};
 
     #[test]
     fn registration_id_is_stable_for_semantic_retry() {
@@ -263,40 +223,6 @@ mod tests {
                 "Reader",
                 "Read lib.rs",
                 Some("{\"allowedTools\":[\"fs_read_text\"]}")
-            )
-        );
-    }
-
-    #[test]
-    fn requested_model_is_part_of_child_identity_without_changing_legacy_ids() {
-        let legacy = subagent_id_for_registration("parent", "turn", "Reader", "Read lib.rs", None);
-        assert_eq!(
-            legacy,
-            subagent_id_for_registration_with_model(
-                "parent",
-                "turn",
-                "Reader",
-                "Read lib.rs",
-                None,
-                None,
-            )
-        );
-        assert_ne!(
-            subagent_id_for_registration_with_model(
-                "parent",
-                "turn",
-                "Reader",
-                "Read lib.rs",
-                Some("Fast Worker"),
-                None,
-            ),
-            subagent_id_for_registration_with_model(
-                "parent",
-                "turn",
-                "Reader",
-                "Read lib.rs",
-                Some("Strong Reviewer"),
-                None,
             )
         );
     }
