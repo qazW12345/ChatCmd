@@ -8,6 +8,7 @@ const MAX_ITEMS: usize = 64;
 const MAX_TEXT_CHARS: usize = 2_000;
 
 pub(super) fn validate_delegation_contract(input: &SubagentStartInput) -> RuntimeResult<()> {
+    validate_optional("model", input.model.as_deref())?;
     validate_list("allowedFiles", input.allowed_files.as_deref())?;
     validate_list("allowedEffects", input.allowed_effects.as_deref())?;
     validate_list("dependencies", input.dependencies.as_deref())?;
@@ -96,6 +97,7 @@ mod tests {
         SubagentStartInput {
             name: "reader".into(),
             request: "inspect".into(),
+            model: Some("GPT-5.6 Sol".into()),
             allowed_files: Some(vec!["src".into()]),
             allowed_effects: Some(vec!["read".into()]),
             dependencies: None,
@@ -130,6 +132,18 @@ mod tests {
                 .expect_err("modify")
                 .code,
             "delegation_scope_widening"
+        );
+    }
+
+    #[test]
+    fn blank_model_is_rejected() {
+        let mut delegated = input();
+        delegated.model = Some("   ".into());
+        assert_eq!(
+            validate_delegation_contract(&delegated)
+                .expect_err("blank model")
+                .code,
+            "invalid_arguments"
         );
     }
 }
