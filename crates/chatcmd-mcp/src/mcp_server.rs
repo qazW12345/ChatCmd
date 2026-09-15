@@ -76,6 +76,19 @@ impl McpServer {
         };
         let (context, mut value) =
             self.prepare_call("agent_subagent_start", arguments, authenticated);
+        // `model` is dispatch metadata, not part of the durable runtime registration contract.
+        // Removing it here preserves upstream child identity/idempotency semantics while still
+        // allowing Fleet coordinators to select a visible ChatGPT model for browser children.
+        let requested_model = value
+            .as_object_mut()
+            .and_then(|object| object.remove("model"))
+            .and_then(|value| match value {
+                Value::String(model) => {
+                    let model = model.trim().to_owned();
+                    (!model.is_empty()).then_some(model)
+                }
+                _ => None,
+            });
         let request = value
             .get("request")
             .and_then(Value::as_str)
@@ -83,7 +96,7 @@ impl McpServer {
             .to_owned();
         let delegated_request = crate::subagent_protocol::delegated_request(&request, &value);
         value["request"] = Value::String(delegated_request.clone());
-        let registration = match self
+        let mut registration = match self
             .runtime
             .call("agent_subagent_start", context.clone(), value)
             .await
@@ -91,6 +104,11 @@ impl McpServer {
             Ok(value) => value,
             Err(error) => return CallToolResult::structured_error(error_value(&error)),
         };
+        if let (Some(model), Some(object)) =
+            (requested_model.as_deref(), registration.as_object_mut())
+        {
+            object.insert("model".to_owned(), Value::String(model.to_owned()));
+        }
         let tools = Self::tool_router().list_all();
         let registered = registration.clone();
         match subagent_worker::dispatch_registered_subagent(
