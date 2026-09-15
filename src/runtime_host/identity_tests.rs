@@ -32,10 +32,10 @@ fn bound_turn_overrides_changed_conversation_scope() {
 
 #[test]
 fn conversation_scope_has_stable_task_identity_across_messages() {
-    let first = task_identity_from_first_message("agent", "openai:scope", "xin chào");
+    let first = task_identity_from_first_message("agent", "openai:scope", "hello");
     assert_eq!(
         first,
-        task_identity_from_first_message("agent", "openai:scope", "một tin nhắn khác")
+        task_identity_from_first_message("agent", "openai:scope", "a different message")
     );
 }
 
@@ -57,26 +57,26 @@ fn explicit_task_and_turn_binding_are_safe_fallbacks_without_private_scope() {
 
 #[test]
 fn unicode_space_bridge_match_requires_one_unambiguous_task() {
-    let rows = vec![("task-a".to_owned(), "Ví dụ abcd ".to_owned())];
+    let rows = vec![("task-a".to_owned(), "Example abcd ".to_owned())];
     assert_eq!(
-        unique_bridge_task_for_message(&rows, None, "Ví dụ abcd\u{00a0}"),
+        unique_bridge_task_for_message(&rows, None, "Example abcd\u{00a0}"),
         Some("task-a".to_owned())
     );
 
     let ambiguous = vec![
-        ("task-a".to_owned(), "Ví dụ abcd ".to_owned()),
-        ("task-b".to_owned(), "Ví dụ abcd\u{202f}".to_owned()),
+        ("task-a".to_owned(), "Example abcd ".to_owned()),
+        ("task-b".to_owned(), "Example abcd\u{202f}".to_owned()),
     ];
     assert_eq!(
-        unique_bridge_task_for_message(&ambiguous, None, "Ví dụ abcd\u{00a0}"),
+        unique_bridge_task_for_message(&ambiguous, None, "Example abcd\u{00a0}"),
         None
     );
     assert_eq!(
-        unique_bridge_task_for_message(&ambiguous, Some("task-b"), "Ví dụ abcd\u{00a0}"),
+        unique_bridge_task_for_message(&ambiguous, Some("task-b"), "Example abcd\u{00a0}"),
         Some("task-b".to_owned())
     );
     assert_eq!(
-        unique_bridge_task_for_message(&ambiguous, Some("task-unrelated"), "Ví dụ abcd\u{00a0}"),
+        unique_bridge_task_for_message(&ambiguous, Some("task-unrelated"), "Example abcd\u{00a0}"),
         None
     );
 }
