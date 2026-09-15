@@ -18,7 +18,7 @@ type BridgeCommand =
   | { action: 'logs'; nonce: string }
   | { action: 'clear-logs'; nonce: string }
   | { action: 'send'; nonce: string; requestId: string; submittedContent: string; model: string; conversationUrl?: string; newConversationUrl?: string; attachments?: ChatGptFileAttachmentPayload[]; localBaseUrl: string }
-  | { action: 'subagent-send'; nonce: string; subagentId: string; childTaskId: string; submittedContent: string; attempt: number; model: string; conversationUrl?: string; newConversationUrl?: string; localBaseUrl: string }
+  | { action: 'subagent-send'; nonce: string; subagentId: string; childTaskId: string; submittedContent: string; attempt: number; model: string; reasoning: string; conversationUrl?: string; newConversationUrl?: string; localBaseUrl: string }
   | { action: 'subagent-close'; nonce: string; subagentId: string }
   | { action: 'stop'; nonce: string; requestId: string; localBaseUrl: string }
   | { action: 'reconcile'; nonce: string; requestId: string }
@@ -78,8 +78,12 @@ export async function dispatchChatGptRequest(input: { requestId: string; submitt
   await bridge({ action: 'send', nonce: nonce(), ...input, localBaseUrl: window.location.origin }, 5_000);
 }
 
-export async function dispatchSubagentFallback(input: { subagentId: string; childTaskId: string; submittedContent: string; attempt: number; model?: string; conversationUrl?: string; newConversationUrl?: string }) {
-  await bridge({ action: 'subagent-send', nonce: nonce(), ...input, model: input.model || 'Auto', localBaseUrl: window.location.origin }, 5_000);
+export async function dispatchSubagentFallback(input: { subagentId: string; childTaskId: string; submittedContent: string; attempt: number; model?: string; reasoning?: string; conversationUrl?: string; newConversationUrl?: string }) {
+  await bridge({
+    action: 'subagent-send', nonce: nonce(), ...input,
+    model: input.model || 'Auto', reasoning: input.reasoning || 'Auto',
+    localBaseUrl: window.location.origin,
+  }, 5_000);
 }
 
 export async function closeSubagentFallbackTab(subagentId: string) {
