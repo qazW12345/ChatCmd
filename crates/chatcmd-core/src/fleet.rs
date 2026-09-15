@@ -271,7 +271,7 @@ impl CandidateGate {
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
-    serde(rename_all = "camelCase", tag = "kind")
+    serde(rename_all = "camelCase", tag = "kind", content = "detail")
 )]
 pub enum GateBlocker {
     IndependentReviewMissing,
