@@ -45,8 +45,8 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
 $pickFolders = $env:CHATCMD_PICK_KIND -eq 'folder'
-$title = if ($pickFolders) { 'Chọn thư mục' } else { 'Chọn tệp' }
-$okLabel = if ($pickFolders) { 'Chọn thư mục' } else { 'Chọn tệp' }
+$title = if ($pickFolders) { 'Select folder' } else { 'Select file' }
+$okLabel = if ($pickFolders) { 'Select folder' } else { 'Select file' }
 
 $source = @'
 using System;
@@ -201,9 +201,9 @@ try {
     #[cfg(target_os = "macos")]
     {
         let script = if kind == PickerKind::Folder {
-            "POSIX path of (choose folder with prompt \"Chọn thư mục\")"
+            "POSIX path of (choose folder with prompt \"Select folder\")"
         } else {
-            "POSIX path of (choose file with prompt \"Chọn tệp\")"
+            "POSIX path of (choose file with prompt \"Select file\")"
         };
         let output = Command::new("osascript")
             .args(["-e", script])
@@ -223,9 +223,9 @@ try {
             command.arg("--directory");
         }
         command.arg(if kind == PickerKind::Folder {
-            "--title=Chọn thư mục"
+            "--title=Select folder"
         } else {
-            "--title=Chọn tệp"
+            "--title=Select file"
         });
         let output = command
             .output()

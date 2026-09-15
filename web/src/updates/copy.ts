@@ -1,57 +1,4 @@
-import { getAppLanguage } from '../i18n';
-
-const vi = {
-  tabLabel: 'Cập nhật',
-  tabDescription: 'Kiểm tra và cài đặt phiên bản ChatCMD mới.',
-  categoryDescription: 'Quản lý phiên bản và cập nhật ứng dụng từ GitHub Releases.',
-  introTitle: 'Cập nhật ChatCMD',
-  introDescription: 'ChatCMD kiểm tra GitHub Releases và chọn đúng gói cài đặt theo hệ điều hành, kiến trúc máy của bạn.',
-  currentVersion: 'Phiên bản hiện tại',
-  latestVersion: 'Phiên bản mới',
-  release: 'Bản phát hành GitHub',
-  platform: 'Nền tảng',
-  check: 'Kiểm tra cập nhật',
-  checking: 'Đang kiểm tra…',
-  update: 'Cập nhật ngay',
-  upToDate: 'Bạn đang sử dụng phiên bản mới nhất.',
-  noPublishedVersion: 'Hiện chưa có bản phát hành GitHub phù hợp.',
-  unavailable: 'Có phiên bản mới nhưng chưa có file cài đặt phù hợp với kiến trúc máy này.',
-  releaseNotes: 'Nội dung phiên bản',
-  openRelease: 'Mở trên GitHub',
-  confirmTitle: 'Xác nhận cập nhật',
-  confirmDescription: 'ChatCMD sẽ tải, xác minh, thay thế file ứng dụng rồi tự khởi động lại.',
-  confirmWarning: 'Bạn có chắc chắc muốn cập nhật không? Hãy chắc chắn không có đoạn trò chuyện nào đang hoạt động để tránh mất dữ liệu.',
-  cancel: 'Hủy',
-  confirmUpdate: 'Xác nhận cập nhật',
-  downloading: 'Đang tải bản cập nhật từ GitHub',
-  verifying: 'Đang xác minh SHA-256',
-  extracting: 'Đang giải nén gói cập nhật',
-  preparing: 'Đang chuẩn bị cài đặt',
-  ready: 'Bản cập nhật đã sẵn sàng',
-  readyInstruction: 'Các file đã được tải, xác minh và chuẩn bị xong. ChatCMD sẽ khởi động lại để hoàn tất cài đặt.',
-  restart: 'Khởi động lại để hoàn tất',
-  restarting: 'Đang đóng và khởi động lại ChatCMD…',
-  failed: 'Cập nhật thất bại',
-  retry: 'Thử lại',
-  unsupported: 'Tự động cập nhật hiện chỉ hỗ trợ Windows và macOS.',
-  popupTitle: 'Có bản cập nhật ChatCMD mới',
-  popupDescription: 'GitHub Releases có phiên bản mới hơn cho thiết bị này.',
-  popupBadge: 'Bản cập nhật mới',
-  popupTrust: 'Gói cài đặt được tải trực tiếp từ GitHub Releases và kiểm tra SHA-256 trước khi thay file ứng dụng.',
-  goUpdate: 'Tới cập nhật',
-  close: 'Đóng',
-  downloadStep: 'Tải file',
-  verifyStep: 'Xác minh',
-  extractStep: 'Giải nén',
-  prepareStep: 'Chuẩn bị',
-  restartStep: 'Khởi động lại',
-  waitingForRestart: 'Đang chờ ChatCMD khởi động lại…',
-  updaterReady: 'Sẵn sàng',
-  updaterUnavailable: 'Không có gói phù hợp',
-  checksumVerified: 'Checksum đã xác minh',
-};
-
-const en: typeof vi = {
+const en = {
   tabLabel: 'Update',
   tabDescription: 'Check for and install new ChatCMD versions.',
   categoryDescription: 'Manage app versions and updates from GitHub Releases.',
@@ -102,8 +49,8 @@ const en: typeof vi = {
   checksumVerified: 'Checksum verified',
 };
 
-export type UpdateCopy = typeof vi;
+export type UpdateCopy = typeof en;
 
 export function updateCopy(): UpdateCopy {
-  return getAppLanguage() === 'vi' ? vi : en;
+  return en;
 }

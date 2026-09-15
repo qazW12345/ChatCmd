@@ -10,16 +10,20 @@ const textExtensions = new Set([
 ]);
 const ignoredDirectories = new Set(['node_modules', 'target', 'dist', '.git']);
 
-// Vietnamese-specific letters and precomposed tone-mark characters. Ordinary ASCII
-// and unrelated Latin text remain allowed; the goal is to prevent Vietnamese source,
-// fixtures, prompts, diagnostics, and UI copy from entering the English-only app.
-const vietnamese = /[ĂăÂâĐđÊêÔôƠơƯư\u1EA0-\u1EF9]/u;
+// Cover Vietnamese-specific letters, the Vietnamese tone-mark block, and the
+// Latin-1 vowels used by Vietnamese for plain acute/grave/tilde forms. Normalize
+// to NFC first so combining-mark spellings are checked as well.
+const vietnamese = /[ĂăÂâĐđÊêÔôƠơƯưÀÁÃÈÉÌÍÒÓÕÙÚÝàáãèéìíòóõùúý\u1EA0-\u1EF9]/u;
 const findings = [];
 
 function decodeUnicodeEscapes(line) {
   return line
     .replace(/\\u\{([0-9a-fA-F]{4,6})\}/gu, (_match, hex) => String.fromCodePoint(Number.parseInt(hex, 16)))
     .replace(/\\u([0-9a-fA-F]{4})/gu, (_match, hex) => String.fromCodePoint(Number.parseInt(hex, 16)));
+}
+
+function containsVietnamese(line) {
+  return vietnamese.test(decodeUnicodeEscapes(line).normalize('NFC'));
 }
 
 function walk(directory) {
@@ -34,7 +38,7 @@ function walk(directory) {
     if (!entry.isFile() || !textExtensions.has(path.extname(entry.name))) continue;
     const text = fs.readFileSync(full, 'utf8');
     text.split(/\r?\n/u).forEach((line, index) => {
-      if (vietnamese.test(line) || vietnamese.test(decodeUnicodeEscapes(line))) {
+      if (containsVietnamese(line)) {
         findings.push(`${path.relative(root, full)}:${index + 1}: ${line.trim()}`);
       }
     });
