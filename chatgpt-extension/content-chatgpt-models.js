@@ -20,8 +20,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 async function discoverChatGptChoices() {
-  const model = await discoverMenu(findModelSwitcherButton, cleanModelLabel);
-  const reasoning = await discoverMenu(findReasoningSwitcherButton, cleanReasoningLabel);
+  const model = await discoverMenu(findModelSwitcherButton, cleanModelLabel, false);
+  const reasoning = await discoverMenu(findReasoningSwitcherButton, cleanReasoningLabel, true);
   return {
     currentModel: model.current || 'Auto',
     models: model.options,
@@ -31,11 +31,11 @@ async function discoverChatGptChoices() {
 }
 
 async function selectChoices(model, reasoning) {
-  await selectMenuChoice(model, findModelSwitcherButton, cleanModelLabel, 'model');
-  await selectMenuChoice(reasoning, findReasoningSwitcherButton, cleanReasoningLabel, 'reasoning mode');
+  await selectMenuChoice(model, findModelSwitcherButton, cleanModelLabel, 'model', false);
+  await selectMenuChoice(reasoning, findReasoningSwitcherButton, cleanReasoningLabel, 'reasoning mode', true);
 }
 
-async function selectMenuChoice(value, findButton, cleanLabel, kind) {
+async function selectMenuChoice(value, findButton, cleanLabel, kind, includeComposer) {
   const target = cleanLabel(value);
   if (!target || /^auto$/i.test(target)) return;
   const button = findButton();
@@ -43,8 +43,11 @@ async function selectMenuChoice(value, findButton, cleanLabel, kind) {
   const current = cleanLabel(button.textContent || button.getAttribute('aria-label') || '');
   if (normalizeLabel(current) === normalizeLabel(target)) return;
   const wasExpanded = button.getAttribute('aria-expanded') === 'true';
-  if (!wasExpanded) button.click();
-  const options = await waitForMenuOptions();
+  if (!wasExpanded) {
+    button.click();
+    await delay(180);
+  }
+  const options = await waitForMenuOptions(includeComposer);
   const wanted = normalizeLabel(target);
   const option = options.find((item) => normalizeLabel(cleanLabel(optionLabel(item))) === wanted)
     || options.find((item) => normalizeLabel(cleanLabel(optionLabel(item))).includes(wanted));
@@ -56,37 +59,43 @@ async function selectMenuChoice(value, findButton, cleanLabel, kind) {
   await delay(180);
 }
 
-async function discoverMenu(findButton, cleanLabel) {
+async function discoverMenu(findButton, cleanLabel, includeComposer) {
   const button = findButton();
   if (!button) return { current: '', options: [] };
   const current = cleanLabel(button.textContent || button.getAttribute('aria-label') || '');
   const wasExpanded = button.getAttribute('aria-expanded') === 'true';
-  if (!wasExpanded) button.click();
+  if (!wasExpanded) {
+    button.click();
+    await delay(180);
+  }
   let options = [];
   try {
-    const items = await waitForMenuOptions();
+    const items = await waitForMenuOptions(includeComposer);
     options = uniqueLabels(items.map((item) => cleanLabel(optionLabel(item))).filter(Boolean));
   } finally {
-    if (!wasExpanded) closeMenu(button);
+    if (!wasExpanded) {
+      closeMenu(button);
+      await delay(120);
+    }
   }
   return { current, options };
 }
 
-async function waitForMenuOptions() {
+async function waitForMenuOptions(includeComposer) {
   const started = Date.now();
   while (Date.now() - started < 4_000) {
-    const options = visibleMenuOptions();
+    const options = visibleMenuOptions(includeComposer);
     if (options.length) return options;
     await delay(50);
   }
   return [];
 }
 
-function visibleMenuOptions() {
+function visibleMenuOptions(includeComposer) {
   return [...document.querySelectorAll('[role="menuitem"], [role="option"], [data-radix-collection-item]')]
     .filter((item) => isVisible(item)
       && item.getAttribute('aria-disabled') !== 'true'
-      && !item.closest('form[data-type="unified-composer"]'));
+      && (includeComposer || !item.closest('form[data-type="unified-composer"]')));
 }
 
 function findModelSwitcherButton() {
@@ -137,7 +146,7 @@ function optionLabel(item) {
 
 function cleanModelLabel(value) {
   const text = cleanLabel(value).replace(/^model\s*[:：-]?\s*/i, '').trim();
-  const ignored = ['model', 'models', 'select model', 'choose model', 'chatgpt'];
+  const ignored = ['model', 'models', 'select model', 'choose model', 'chatgpt', 'more models', 'legacy models', 'learn more'];
   if (!text || ignored.includes(text.toLowerCase()) || text.length > 100) return '';
   return text;
 }
@@ -146,7 +155,7 @@ function cleanReasoningLabel(value) {
   const text = cleanLabel(value)
     .replace(/^(?:reasoning|thinking(?:\s+effort)?)\s*[:：-]?\s*/i, '')
     .trim();
-  const ignored = ['reasoning', 'thinking', 'thinking effort', 'select reasoning', 'choose reasoning'];
+  const ignored = ['reasoning', 'thinking', 'thinking effort', 'select reasoning', 'choose reasoning', 'learn more'];
   if (!text || ignored.includes(text.toLowerCase()) || text.length > 80) return '';
   return text;
 }
