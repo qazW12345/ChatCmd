@@ -21,6 +21,10 @@ type ModelOptionsResponse = {
   currentReasoning?: unknown;
 };
 
+type ModelBridgeCommand =
+  | { action: 'model-options'; nonce: string; newConversationUrl?: string }
+  | { action: 'reasoning-select'; nonce: string; reasoning: string; newConversationUrl?: string };
+
 export async function discoverChatGptModelOptions(newConversationUrl?: string): Promise<ChatGptModelOptions> {
   const response = await bridge({ action: 'model-options', nonce: crypto.randomUUID(), newConversationUrl }, 12_000);
   return {
@@ -31,7 +35,13 @@ export async function discoverChatGptModelOptions(newConversationUrl?: string): 
   };
 }
 
-function bridge(command: { action: 'model-options'; nonce: string; newConversationUrl?: string }, timeoutMs: number) {
+export async function applyChatGptReasoningChoice(reasoning: string, newConversationUrl?: string) {
+  const cleaned = reasoning.trim();
+  if (!cleaned || cleaned.toLowerCase() === 'auto') return;
+  await bridge({ action: 'reasoning-select', nonce: crypto.randomUUID(), reasoning: cleaned, newConversationUrl }, 12_000);
+}
+
+function bridge(command: ModelBridgeCommand, timeoutMs: number) {
   return new Promise<ModelOptionsResponse>((resolve, reject) => {
     const timer = window.setTimeout(() => finish(new Error(tr('ChatCMD ChatGPT Bridge did not respond in time.'))), timeoutMs);
     const onMessage = (event: MessageEvent) => {
