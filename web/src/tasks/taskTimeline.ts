@@ -314,7 +314,7 @@ export function activityInputDetails(activity: ToolActivity): ActivityInputDetai
 
 function formatInputDetail(value: unknown, key = ''): string {
   if (typeof value === 'boolean') return value ? tr('Yes') : tr('No');
-  if (typeof value === 'number') return key === 'timeoutMs' ? friendlyDuration(value) : /bytes/i.test(key) ? friendlyBytes(value) : /context|line|maxDepth/i.test(key) ? `${formatAppNumber(value)} ${appLocale().startsWith('vi') ? 'dòng' : 'lines'}` : formatFriendlyNumber(value);
+  if (typeof value === 'number') return key === 'timeoutMs' ? friendlyDuration(value) : /bytes/i.test(key) ? friendlyBytes(value) : /context|line|maxDepth/i.test(key) ? `${formatAppNumber(value)} lines` : formatFriendlyNumber(value);
   if (typeof value === 'string') return truncate(value, 1200);
   if (Array.isArray(value)) return truncate(value.map((item) => formatInputDetail(item)).filter(Boolean).join(', '), 1600);
   const entries = Object.entries(asObject(value)).filter(([, item]) => item !== undefined && item !== null && item !== '');
@@ -330,7 +330,7 @@ function friendlyInputLabel(key: string) {
 }
 
 function formatFriendlyNumber(value: number) { return value >= 1000 && value % 1000 === 0 ? formatAppNumber(value) : String(value); }
-function friendlyDuration(ms: number) { return ms >= 1000 && ms % 1000 === 0 ? `${formatAppNumber(ms / 1000)} ${appLocale().startsWith('vi') ? 'giây' : 'seconds'}` : `${formatAppNumber(ms)} ms`; }
+function friendlyDuration(ms: number) { return ms >= 1000 && ms % 1000 === 0 ? `${formatAppNumber(ms / 1000)} seconds` : `${formatAppNumber(ms)} ms`; }
 function friendlyBytes(bytes: number) { return bytes >= 1_048_576 ? `${(bytes / 1_048_576).toFixed(bytes % 1_048_576 ? 1 : 0)} MB` : bytes >= 1024 ? `${(bytes / 1024).toFixed(bytes % 1024 ? 1 : 0)} KB` : `${formatAppNumber(bytes)} B`; }
 
 export function activityOutput(activity: ToolActivity) {
