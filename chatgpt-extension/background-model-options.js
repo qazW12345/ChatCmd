@@ -8,8 +8,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch((error) => sendResponse({ ok: false, error: modelOptionsErrorMessage(error) }));
     return true;
   }
-  if (message.action === 'reasoning-select') {
-    void selectReasoningForSource(sender.tab?.id, message.newConversationUrl, message.reasoning)
+  if (message.action === 'choices-apply') {
+    void applyChoicesForSource(sender.tab?.id, message.newConversationUrl, message.model, message.reasoning)
       .then(() => sendResponse({ ok: true }))
       .catch((error) => sendResponse({ ok: false, error: modelOptionsErrorMessage(error) }));
     return true;
@@ -33,11 +33,16 @@ async function discoverModelOptionsForSource(sourceTabId, newConversationUrl) {
   };
 }
 
-async function selectReasoningForSource(sourceTabId, newConversationUrl, reasoning) {
-  const cleaned = cleanReturnedOption(reasoning);
-  if (!cleaned || /^auto$/i.test(cleaned)) return;
+async function applyChoicesForSource(sourceTabId, newConversationUrl, model, reasoning) {
+  const cleanedModel = cleanReturnedOption(model) || 'Auto';
+  const cleanedReasoning = cleanReturnedOption(reasoning) || 'Auto';
+  if (/^auto$/i.test(cleanedModel) && /^auto$/i.test(cleanedReasoning)) return;
   const tab = await modelOptionsTabForSource(sourceTabId, newConversationUrl);
-  await sendToChatGpt(tab.id, { type: 'chatcmd-chatgpt-select-reasoning', reasoning: cleaned });
+  await sendToChatGpt(tab.id, {
+    type: 'chatcmd-chatgpt-select-choices',
+    model: cleanedModel,
+    reasoning: cleanedReasoning,
+  });
 }
 
 async function modelOptionsTabForSource(sourceTabId, newConversationUrl) {
