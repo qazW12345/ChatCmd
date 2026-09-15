@@ -167,14 +167,26 @@ The first run is expected to expose integration defects. Treat those as Fleet bu
 
 ## Browser setup for the first run
 
-The ChatGPT worker bridge is a Chromium extension. For the first Fleet test, use Chrome/Edge/Brave for the ChatCMD management page and worker ChatGPT tabs to remove cross-browser ambiguity:
+The ChatGPT worker bridge is a cross-browser Manifest V3 WebExtension in this fork. Chromium uses its service-worker background entry; Firefox uses the equivalent event-page `background.scripts` entry. Both routes execute the same background modules and worker-tab logic.
 
-1. Build/run this fork and open `http://127.0.0.1:8080`.
+### Firefox (preferred for Marek's normal workflow)
+
+1. Build/run this fork and open `http://127.0.0.1:8080` in Firefox.
 2. Create/connect the ChatCMD MCP profile as described in `docs/PLUGIN_SETUP.md`.
-3. Load `chatgpt-extension/` unpacked in the same Chromium profile.
-4. Sign in to ChatGPT in that profile and reload both ChatGPT and ChatCMD.
-5. Set the allowed sub-agent count high enough for the desired worker concurrency.
-6. Select the AI-Co project folder for the coordinator task.
-7. Start with one implementation child plus one later independent reviewer before increasing parallelism.
+3. Open `about:debugging#/runtime/this-firefox`.
+4. Select **Load Temporary Add-on...** and choose `chatgpt-extension/manifest.json` from this checkout.
+5. Sign in to ChatGPT in the same Firefox profile and reload both ChatGPT and ChatCMD.
+6. Set the allowed sub-agent count high enough for the desired worker concurrency.
+7. Select the AI-Co project folder for the coordinator task.
+8. Start with one implementation child plus one later independent reviewer before increasing parallelism.
 
-Once the basic loop works reliably, additional independent implementation/test children can be introduced where their ownership is genuinely disjoint.
+A temporary Firefox add-on is removed when Firefox exits. That is appropriate for the first Fleet integration tests; packaging/signing for persistent installation can be added after the workflow proves itself.
+
+### Chrome / Edge / Brave
+
+1. Open the browser's extensions page and enable **Developer mode**.
+2. Select **Load unpacked** and choose `chatgpt-extension/`.
+3. Sign in to ChatGPT in that browser profile and reload both ChatGPT and ChatCMD.
+4. Continue with the same Fleet coordinator workflow described above.
+
+The coordinator and worker tabs should use the same browser profile as the loaded bridge. Once the basic loop works reliably, additional independent implementation/test children can be introduced where their ownership is genuinely disjoint.
