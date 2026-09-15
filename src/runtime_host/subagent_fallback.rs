@@ -100,6 +100,11 @@ impl RuntimeHost {
             .ok_or_else(|| {
                 RuntimeError::new("subagent_registration_invalid", "missing childTaskId")
             })?;
+        let requested_model = registration
+            .get("model")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty());
 
         let row = sqlx::query(
             "SELECT parent_task_id,parent_turn_id,name,status,fallback_state,fallback_attempts FROM subagent_runs WHERE id=? AND child_task_id=? LIMIT 1",
@@ -184,6 +189,7 @@ impl RuntimeHost {
                 "parentTurnId": parent_turn_id,
                 "childTaskId": child_task_id,
                 "name": name,
+                "model": requested_model,
                 "projectFolder": project_folder,
                 "submittedContent": submitted_content,
                 "attempt": attempt,
@@ -191,6 +197,10 @@ impl RuntimeHost {
                 "parentRequestId": parent_context.request_id
             }),
         );
-        Ok(json!({ "attempt": attempt, "maxAttempts": MAX_EXTENSION_FALLBACK_ATTEMPTS }))
+        Ok(json!({
+            "attempt": attempt,
+            "maxAttempts": MAX_EXTENSION_FALLBACK_ATTEMPTS,
+            "model": requested_model
+        }))
     }
 }
