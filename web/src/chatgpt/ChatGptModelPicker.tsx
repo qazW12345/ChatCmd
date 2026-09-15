@@ -1,7 +1,7 @@
 import { LoaderCircle, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { discoverChatGptModelOptions } from '../chatgptModelBridge';
+import { applyChatGptChoices, discoverChatGptModelOptions } from '../chatgptModelBridge';
 import { tr } from '../i18n';
 
 const AUTO = 'Auto';
@@ -30,21 +30,44 @@ export function ChatGptModelPicker({
   const [loading, setLoading] = useState(false);
   const [warning, setWarning] = useState('');
 
+  const loadOptions = useCallback(async () => {
+    const options = await discoverChatGptModelOptions(newConversationUrl);
+    setModels(options.models);
+    setReasoningOptions(options.reasoningOptions);
+    setCurrentModel(options.currentModel ?? '');
+    setCurrentReasoning(options.currentReasoning ?? '');
+  }, [newConversationUrl]);
+
   const refresh = useCallback(async () => {
     if (extensionReady !== true || loading) return;
     setLoading(true); setWarning('');
     try {
-      const options = await discoverChatGptModelOptions(newConversationUrl);
-      setModels(options.models);
-      setReasoningOptions(options.reasoningOptions);
-      setCurrentModel(options.currentModel ?? '');
-      setCurrentReasoning(options.currentReasoning ?? '');
+      await loadOptions();
     } catch (reason) {
       setWarning(reason instanceof Error ? reason.message : tr('Could not read the available ChatGPT models.'));
     } finally {
       setLoading(false);
     }
-  }, [extensionReady, loading, newConversationUrl]);
+  }, [extensionReady, loadOptions, loading]);
+
+  const selectModel = async (nextModel: string) => {
+    onChange(nextModel);
+    if (extensionReady !== true || loading || nextModel.toLowerCase() === AUTO.toLowerCase()) return;
+
+    // Reasoning controls can depend on the selected model. Apply the model to the
+    // inactive prepared tab first, clear a possibly stale reasoning choice, then
+    // read the model-specific reasoning choices back into ChatCMD.
+    onReasoningChange(AUTO);
+    setLoading(true); setWarning('');
+    try {
+      await applyChatGptChoices(nextModel, AUTO, newConversationUrl);
+      await loadOptions();
+    } catch (reason) {
+      setWarning(reason instanceof Error ? reason.message : tr('Could not apply the selected ChatGPT model.'));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (extensionReady !== true) return;
@@ -69,7 +92,7 @@ export function ChatGptModelPicker({
     <span>{tr('Model / reasoning')}</span>
     <div className="chatgpt-model-picker-row">
       <label className="sr-only" htmlFor="chatgpt-model-choice">{tr('Model')}</label>
-      <select id="chatgpt-model-choice" className="chatgpt-model-select" value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled || loading || extensionReady !== true}>
+      <select id="chatgpt-model-choice" className="chatgpt-model-select" value={value} onChange={(event) => void selectModel(event.target.value)} disabled={disabled || loading || extensionReady !== true}>
         {modelChoices.map((choice) => <option value={choice} key={choice}>{choice}</option>)}
       </select>
       {showReasoning && <>
