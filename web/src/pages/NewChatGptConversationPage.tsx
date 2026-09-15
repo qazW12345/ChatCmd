@@ -130,10 +130,13 @@ export function NewChatGptConversationPage() {
         content: effectiveContent,
       });
       rememberAgentUse(agentId);
+      // The inactive prepared tab already carries the selected browser state. Keep
+      // the send path on Auto so it does not reopen the model menu and reset a
+      // separately selected reasoning effort; the backend still records `model`.
       await dispatchChatGptRequest({
         requestId: request.id,
         submittedContent: request.submittedContent,
-        model: request.model,
+        model: AUTO,
         newConversationUrl,
         attachments: fileAttachmentPayloads(textAttachments),
       });
