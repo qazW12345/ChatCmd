@@ -1,6 +1,6 @@
 # ChatCMD ChatGPT Bridge
 
-ChatCMD ChatGPT Bridge is an optional Chromium Manifest V3 extension that connects the local ChatCMD console to an already signed-in `chatgpt.com` tab.
+ChatCMD ChatGPT Bridge is an optional cross-browser Manifest V3 WebExtension that connects the local ChatCMD console to an already signed-in `chatgpt.com` tab. This Fleet fork supports Firefox as well as Chromium-family browsers.
 
 It is an unofficial browser UI integration, not the OpenAI API and not a replacement for a normal MCP connection. It automates the current ChatGPT page DOM in the same browser profile as the user.
 
@@ -18,15 +18,32 @@ It is an unofficial browser UI integration, not the OpenAI API and not a replace
 
 ## Install for development
 
-1. Start ChatCMD on `http://127.0.0.1:8080` or `http://localhost:8080`.
-2. Open `chrome://extensions/`, `edge://extensions/`, or `brave://extensions/`.
-3. Enable **Developer mode**.
-4. Select **Load unpacked**.
-5. Choose this `chatgpt-extension` directory.
-6. Sign in to <https://chatgpt.com> in the same browser profile.
-7. Reload the ChatGPT and local ChatCMD pages.
+Start ChatCMD on `http://127.0.0.1:8080` or `http://localhost:8080`, then load this same extension directory in the browser profile where you are signed in to ChatGPT.
 
-For the complete MCP profile, public address, ChatGPT plugin, and extension workflow, read [Plugin and ChatGPT setup](../docs/PLUGIN_SETUP.md).
+### Firefox
+
+1. Open `about:debugging#/runtime/this-firefox`.
+2. Select **Load Temporary Add-on...**.
+3. Choose this directory's `manifest.json`.
+4. Sign in to <https://chatgpt.com> in the same Firefox profile.
+5. Reload the ChatGPT and local ChatCMD pages.
+
+Firefox Manifest V3 uses the `background.scripts` entry in the shared manifest. `firefox-background-compat.js` makes the existing service-worker bootstrap a no-op after those same background modules have been loaded as an event page. The operational worker logic is therefore shared with Chromium rather than forked.
+
+Temporary Firefox add-ons are removed when Firefox exits. That is suitable for development and Fleet integration testing. Persistent distribution can be packaged/signed later if required.
+
+### Chrome / Edge / Brave
+
+1. Open `chrome://extensions/`, `edge://extensions/`, or `brave://extensions/`.
+2. Enable **Developer mode**.
+3. Select **Load unpacked**.
+4. Choose this `chatgpt-extension` directory.
+5. Sign in to <https://chatgpt.com> in the same browser profile.
+6. Reload the ChatGPT and local ChatCMD pages.
+
+Chromium Manifest V3 continues to use `background.service_worker`; its behavior is unchanged by the Firefox compatibility entry.
+
+For the complete MCP profile, public address, ChatGPT plugin, and extension workflow, read [Plugin and ChatGPT setup](../docs/PLUGIN_SETUP.md). Fleet-specific operation is documented in [FLEET.md](../docs/FLEET.md).
 
 ## Permissions and trust model
 
@@ -35,6 +52,7 @@ The manifest requests:
 - `tabs` to find, open, focus, and close ChatGPT conversation tabs;
 - `storage` for conversation bindings, request context, preferences, and bounded diagnostics;
 - `scripting` to restore content scripts after extension or page lifecycle changes;
+- `alarms` for bounded extension lifecycle/recovery work;
 - host access to `https://chatgpt.com/*` and local HTTP `localhost`/`127.0.0.1` origins.
 
 The extension does **not** request the `cookies` permission and does not read or write ChatGPT login tokens. It can still read and interact with the visible ChatGPT page because that is its purpose. Use a dedicated browser profile if stronger separation is required.
@@ -50,6 +68,8 @@ The approval WebSocket uses plaintext JSON frames on the local ChatCMD transport
 ## Tab behavior
 
 - An existing ChatGPT conversation tab is reused when possible.
+- Each newly dispatched browser sub-agent without an existing conversation receives its own background ChatGPT tab.
+- Sub-agent bindings are keyed by sub-agent identity so concurrent Fleet workers do not intentionally share one worker conversation.
 - If ChatCMD creates a background tab for a request, the extension can close that generated tab after completion.
 - A tab that the user already had open is not automatically closed.
 - Conversation IDs and provisional-to-final URL aliases are stored so follow-up messages return to the correct tab.
@@ -58,9 +78,11 @@ The approval WebSocket uses plaintext JSON frames on the local ChatCMD transport
 
 `Auto` keeps the current/default ChatGPT model. For another value, the extension opens the model switcher and selects the visible label. Available names depend on the account, workspace, plan, and current ChatGPT UI, so ChatCMD accepts a custom label.
 
+Fleet can pass a concrete visible model label on `agent_subagent_start`; explicit model requests are routed through this browser bridge so implementer/reviewer roles do not silently fall back to a different native-sampling path.
+
 ## Diagnostics
 
-Open **ChatCMD → Settings → Data & logs → Extension logs**. For background failures, also inspect the extension service worker from the browser extensions page.
+Open **ChatCMD → Settings → Data & logs → Extension logs**. For background failures, inspect the extension background context from the browser's extension-debugging UI (`about:debugging` in Firefox or the extension service worker in Chromium).
 
 Logs and bug reports must not contain private conversations, MCP endpoints, cookies, credentials, or proprietary source data.
 
@@ -70,7 +92,7 @@ Logs and bug reports must not contain private conversations, MCP endpoints, cook
 node --test content-chatgpt.test.cjs
 ```
 
-The automated suite covers DOM-adapter behavior with fixtures. After changing selectors or message flow, manually verify start, continue, model selection, stop, approvals, queue handling, tab reuse, and final-response capture in a disposable browser profile.
+The automated suite covers DOM-adapter behavior with fixtures. After changing selectors or message flow, manually verify start, continue, model selection, stop, approvals, queue handling, tab reuse, sub-agent isolation, and final-response capture in a disposable browser profile. Cross-browser background boot must also be exercised in both Firefox and a Chromium-family browser after manifest/bootstrap changes.
 
 ## Maintenance limitation
 
