@@ -68,7 +68,7 @@ function loadBridge(statusHandler = () => Promise.resolve({ ok: true, known: tru
   return context;
 }
 
-function prepareMonitor(context, state, { text = 'Phản hồi hoàn tất', sendReady = true, threadError = false } = {}) {
+function prepareMonitor(context, state, { text = 'Completed response', sendReady = true, threadError = false } = {}) {
   context.__requestState = state;
   context.__assistantNodes = text ? [{ innerText: text, textContent: text }] : [];
   context.__sendButton = sendReady ? {} : null;
@@ -137,7 +137,7 @@ test('a superseded request monitor exits instead of touching the newer request',
 test('automatic retry is temporarily disabled when no progress was observed', async () => {
   const context = loadBridge();
   prepareMonitor(context, { known: true, running: true, stopRequested: false, hasFinalResponse: false, active: true }, { text: '' });
-  await assert.rejects(vm.runInContext("waitForAssistant(0, 'request-1', 'ORIGINAL PROMPT')", context), /Quá lâu/i);
+  await assert.rejects(vm.runInContext("waitForAssistant(0, 'request-1', 'ORIGINAL PROMPT')", context), /Timed out/i);
   assert.equal(context.__submitCalls, 0);
   assert.deepEqual(Array.from(context.__composerWrites), []);
 });
@@ -146,29 +146,29 @@ test('an interruption after execution progress does not send a continuation prom
   const context = loadBridge();
   prepareMonitor(context, { known: true, running: true, stopRequested: false, hasFinalResponse: false, active: true }, { text: '', threadError: true });
   context.__stopButton = () => context.__now < 3_000 ? {} : null;
-  await assert.rejects(vm.runInContext("waitForAssistant(0, 'request-1', 'ORIGINAL PROMPT')", context), /Quá lâu/i);
+  await assert.rejects(vm.runInContext("waitForAssistant(0, 'request-1', 'ORIGINAL PROMPT')", context), /Timed out/i);
   assert.equal(context.__submitCalls, 0);
   assert.equal(context.__composerWrites.length, 0);
 });
 
 test('partial assistant text followed by an error does not send the continuation prompt while retry is disabled', async () => {
   const context = loadBridge();
-  prepareMonitor(context, { known: true, running: true, stopRequested: false, hasFinalResponse: false, active: true }, { text: 'Đã sửa một phần', threadError: true });
-  await assert.rejects(vm.runInContext("waitForAssistant(0, 'request-1', 'ORIGINAL PROMPT')", context), /Quá lâu/i);
+  prepareMonitor(context, { known: true, running: true, stopRequested: false, hasFinalResponse: false, active: true }, { text: 'Partially fixed', threadError: true });
+  await assert.rejects(vm.runInContext("waitForAssistant(0, 'request-1', 'ORIGINAL PROMPT')", context), /Timed out/i);
   assert.equal(context.__composerWrites.length, 0);
 });
 
 test('a ChatGPT error does not retry while automatic retry is disabled', async () => {
   const context = loadBridge();
   prepareMonitor(context, { known: true, running: true, stopRequested: false, hasFinalResponse: false, active: true }, { text: '', threadError: true });
-  await assert.rejects(vm.runInContext("waitForAssistant(0, 'request-1', 'RETRY ME')", context), /Quá lâu/i);
+  await assert.rejects(vm.runInContext("waitForAssistant(0, 'request-1', 'RETRY ME')", context), /Timed out/i);
   assert.equal(context.__submitCalls, 0);
 });
 
 test('unknown backend state never authorizes an automatic resend', async () => {
   const context = loadBridge(() => Promise.resolve({ ok: false, error: 'offline' }));
   prepareMonitor(context, { known: false, running: null, stopRequested: false, hasFinalResponse: false, active: null }, { text: '', sendReady: false });
-  await assert.rejects(vm.runInContext("waitForAssistant(0, 'request-1', 'DO NOT RETRY')", context), /Quá lâu/);
+  await assert.rejects(vm.runInContext("waitForAssistant(0, 'request-1', 'DO NOT RETRY')", context), /Timed out/);
   assert.equal(context.__submitCalls, 0);
 });
 
@@ -179,7 +179,7 @@ test('raw assistant bubble completes even when the empty composer has no send bu
     { known: true, running: true, stopRequested: false, hasFinalResponse: false, active: true },
     { sendReady: false },
   );
-  assert.equal(await vm.runInContext("waitForAssistant(0, 'request-1', 'ORIGINAL')", context), 'Phản hồi hoàn tất');
+  assert.equal(await vm.runInContext("waitForAssistant(0, 'request-1', 'ORIGINAL')", context), 'Completed response');
   assert.equal(context.__completionPings, 1);
   assert.equal(context.__submitCalls, 0);
   assert.equal(vm.runInContext('activeRequest.resultReported', context), true);
@@ -189,7 +189,7 @@ test('a failed completion ping never turns an existing raw bubble into a resend'
   const context = loadBridge();
   context.__completionResponse = { ok: false, error: 'backend unavailable' };
   prepareMonitor(context, { known: true, running: true, stopRequested: false, hasFinalResponse: false, active: true });
-  await assert.rejects(vm.runInContext("waitForAssistant(0, 'request-1', 'NEVER DUPLICATE')", context), /Quá lâu/);
+  await assert.rejects(vm.runInContext("waitForAssistant(0, 'request-1', 'NEVER DUPLICATE')", context), /Timed out/);
   assert.ok(context.__completionPings > 1);
   assert.equal(context.__submitCalls, 0);
 });
@@ -197,7 +197,7 @@ test('a failed completion ping never turns an existing raw bubble into a resend'
 test('backend final response completes without a browser ping or retry', async () => {
   const context = loadBridge();
   prepareMonitor(context, { known: true, running: false, stopRequested: false, hasFinalResponse: true, active: false });
-  assert.equal(await vm.runInContext("waitForAssistant(0, 'request-1', 'ORIGINAL')", context), 'Phản hồi hoàn tất');
+  assert.equal(await vm.runInContext("waitForAssistant(0, 'request-1', 'ORIGINAL')", context), 'Completed response');
   assert.equal(context.__completionPings, 0);
   assert.equal(context.__submitCalls, 0);
 });
