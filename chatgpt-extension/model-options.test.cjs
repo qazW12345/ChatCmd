@@ -38,7 +38,7 @@ test('new conversation preserves pre-applied browser choices on dispatch', () =>
   assert.doesNotMatch(page.slice(dispatch, dispatch + 320), /model:\s*request\.model/);
 });
 
-test('content bridge discovers and applies live model and reasoning choices', async () => {
+test('content bridge discovers composer-hosted model picker and applies live choices', async () => {
   const source = read('chatgpt-extension/content-chatgpt-models.js');
   new vm.Script(source, { filename: 'content-chatgpt-models.js' });
 
@@ -48,25 +48,28 @@ test('content bridge discovers and applies live model and reasoning choices', as
   let currentReasoning = 'Medium';
 
   const modelOptions = [
-    choice('GPT-5.6 Sol', () => { currentModel = 'GPT-5.6 Sol'; openMenu = ''; }),
-    choice('GPT-5.6 Luna', () => { currentModel = 'GPT-5.6 Luna'; openMenu = ''; }),
+    choice('GPT-5.6 Sol', () => { currentModel = 'GPT-5.6 Sol'; openMenu = ''; }, true),
+    choice('GPT-5.6 Luna', () => { currentModel = 'GPT-5.6 Luna'; openMenu = ''; }, true),
   ];
   const reasoningOptions = [
     choice('Medium', () => { currentReasoning = 'Medium'; openMenu = ''; }, true),
     choice('High', () => { currentReasoning = 'High'; openMenu = ''; }, true),
   ];
-  const modelButton = menuButton('model', () => currentModel);
-  const reasoningButton = menuButton('reasoning', () => currentReasoning);
+  const modelButton = menuButton('model', () => currentModel, true);
+  const reasoningButton = menuButton('reasoning', () => currentReasoning, true);
 
-  function menuButton(kind, label) {
+  function menuButton(kind, label, insideComposer = false) {
     return {
       get textContent() { return label(); },
+      get id() { return ''; },
       getAttribute(name) {
         if (name === 'aria-expanded') return openMenu === kind ? 'true' : 'false';
         if (name === 'aria-label') return kind === 'reasoning' ? `Thinking effort: ${label()}` : null;
+        if (name === 'data-testid') return kind === 'model' ? 'model-switcher-dropdown-button' : null;
+        if (name === 'id') return '';
         return null;
       },
-      closest() { return null; },
+      closest(selector) { return insideComposer && selector.includes('unified-composer') ? {} : null; },
       click() { openMenu = openMenu === kind ? '' : kind; },
     };
   }
@@ -84,6 +87,7 @@ test('content bridge discovers and applies live model and reasoning choices', as
   const document = {
     querySelectorAll(selector) {
       if (selector === 'button[data-testid="model-switcher-dropdown-button"]') return [modelButton];
+      if (selector === 'button[data-testid*="model" i]') return [modelButton];
       if (selector === 'button[data-testid*="reasoning" i]') return [reasoningButton];
       if (selector.includes('[role="menuitem"]')) {
         if (openMenu === 'model') return modelOptions;
