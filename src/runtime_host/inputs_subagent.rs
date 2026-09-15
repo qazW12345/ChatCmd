@@ -14,6 +14,8 @@ pub(super) struct SubagentStartInput {
     pub(super) name: String,
     pub(super) request: String,
     #[serde(default)]
+    pub(super) model: Option<String>,
+    #[serde(default)]
     pub(super) allowed_files: Option<Vec<String>>,
     #[serde(default)]
     pub(super) allowed_effects: Option<Vec<String>>,
