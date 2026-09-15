@@ -396,7 +396,7 @@ function ActivityPopupContent({ activity, approvalPending, running }: { activity
   const codeView = activityCodeView(activity);
   return <div className="activity-popup-content">
     <div className="activity-command"><FileCode2 /><code>{command}</code></div>
-    {inputDetails.length > 0 && <section className="activity-input-details" aria-label={tr('Tool input details')}><header><strong>{tr('Request details')}</strong><code>{activity.tool}</code></header><dl>{inputDetails.map((item) => <div key={`${item.label}:${item.value}`}><dt>{item.label}</dt><dd>{item.code ? <code>{item.value}</code> : item.value}</dd></div>)}</dl></section>}
+    {inputDetails.length > 0 && <section className="activity-input-details" aria-label={tr('Tool input details')}><header><strong>{tr('Request details')}</strong><code>{activity.tool}</code></header><dl>{inputDetails.map((item) => <div key={`${item.label}:${item.value}`}><dt>{item.label}</dt><dd>{item.code ? <code>{item.value}</code> : item.value}</dd></div>)}</section>}
     {failed && <div className="activity-error-detail" role="alert">
       <div className="activity-error-heading"><CircleAlert aria-hidden="true" /><strong>{tr('Tool failed')}</strong></div>
       {activity.errorCode && <div className="activity-error-row"><span>{tr('Error code')}</span><code>{activity.errorCode}</code></div>}
@@ -414,7 +414,7 @@ function ActivityPopupContent({ activity, approvalPending, running }: { activity
 }
 
 function formatErrorDetails(value: unknown) { if (typeof value === 'string') return value; try { return JSON.stringify(value, null, 2); } catch { return String(value); } }
-function isChatGptSendDisabledMessage(value: string) { return value.includes('Nút gửi ChatGPT đang bị vô hiệu hóa.') || value.includes('The ChatGPT send button is disabled.'); }
+function isChatGptSendDisabledMessage(value: string) { return value.includes('The ChatGPT send button is disabled.'); }
 
 function BubbleTime({ value, ariaHidden = false }: { value: string; ariaHidden?: boolean }) {
   const nowMs = useAdaptiveNow(value);
