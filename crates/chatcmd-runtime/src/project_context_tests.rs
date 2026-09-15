@@ -82,7 +82,7 @@ async fn codex_rules_are_hidden_discovered_in_deterministic_order() {
 #[tokio::test]
 async fn utf8_truncation_has_continuation_and_valid_boundary() {
     let fixture = TempDir::new().expect("fixture");
-    write(&fixture.path().join("AGENTS.md"), "xin chào thế giới");
+    write(&fixture.path().join("AGENTS.md"), "こんにちは世界");
     let service = ProjectContextService::with_budgets(32, 8, 256, Duration::from_secs(5));
 
     let bundle = service.load(fixture.path(), &[]).await.expect("context");
