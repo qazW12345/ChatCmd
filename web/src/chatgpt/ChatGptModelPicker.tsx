@@ -56,6 +56,7 @@ export function ChatGptModelPicker({
 
   const modelChoices = useMemo(() => uniqueChoices([AUTO, value, ...models]), [models, value]);
   const reasoningChoices = useMemo(() => uniqueChoices([AUTO, reasoningValue, ...reasoningOptions]), [reasoningOptions, reasoningValue]);
+  const showReasoning = reasoningOptions.length > 0 || reasoningValue.toLowerCase() !== AUTO.toLowerCase();
   const detail = warning
     ? warning
     : currentModel
@@ -71,7 +72,7 @@ export function ChatGptModelPicker({
       <select id="chatgpt-model-choice" className="chatgpt-model-select" value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled || loading || extensionReady !== true}>
         {modelChoices.map((choice) => <option value={choice} key={choice}>{choice}</option>)}
       </select>
-      {reasoningOptions.length > 0 && <>
+      {showReasoning && <>
         <label className="sr-only" htmlFor="chatgpt-reasoning-choice">{tr('Reasoning')}</label>
         <select id="chatgpt-reasoning-choice" className="chatgpt-model-select" value={reasoningValue} onChange={(event) => onReasoningChange(event.target.value)} disabled={disabled || loading || extensionReady !== true}>
           {reasoningChoices.map((choice) => <option value={choice} key={choice}>{choice === AUTO ? tr('Reasoning: Auto') : choice}</option>)}
