@@ -96,7 +96,7 @@ globalThis.ChatCmdMonitor = Object.freeze({ create(api) {
           continue;
         }
         if ((api.activeRequest?.retryCount || 0) >= api.MAX_AUTO_RETRIES) {
-          throw new Error(`ChatGPT vẫn chưa có phản hồi cuối sau ${api.MAX_AUTO_RETRIES} lần tự động gửi lại.`);
+          throw new Error(`ChatGPT still has no final response after ${api.MAX_AUTO_RETRIES} automatic retries.`);
         }
         baselineCount = nodes.length;
         lastText = '';
@@ -109,6 +109,6 @@ globalThis.ChatCmdMonitor = Object.freeze({ create(api) {
     }
     await api.delay(350);
   }
-  throw new Error('Quá lâu chưa nhận được phản hồi hoàn tất từ ChatGPT.');
+  throw new Error('Timed out waiting for a completed response from ChatGPT.');
 };
 } });
