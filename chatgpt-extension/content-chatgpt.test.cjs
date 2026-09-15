@@ -214,14 +214,14 @@ test('background exposes browser completion and the known status contract', asyn
   assert.equal(missing.known, false);
 });
 
-test('Vietnamese stop controls are detected by the shared DOM helper', () => {
+test('English stop controls are detected by the shared DOM helper', () => {
   class FakeElement {
     constructor(label) { this.label = label; this.textContent = ''; }
     getAttribute(name) { return name === 'aria-label' ? this.label : null; }
     getBoundingClientRect() { return { width: 10, height: 10 }; }
     querySelectorAll() { return []; }
   }
-  for (const label of ['Dừng tạo phản hồi', 'Ngừng tạo']) {
+  for (const label of ['Stop generating response', 'Stop generating']) {
     const button = new FakeElement(label);
     const context = {
       Element: FakeElement,
@@ -244,7 +244,7 @@ test('a stop-like button outside the unified composer does not mark ChatGPT as g
     querySelectorAll() { return []; }
   }
   const composer = new FakeElement();
-  const outsideStop = new FakeElement('Dừng chia sẻ màn hình');
+  const outsideStop = new FakeElement('Stop screen sharing');
   const context = {
     Element: FakeElement,
     Node: { DOCUMENT_POSITION_FOLLOWING: 4 },
@@ -252,7 +252,7 @@ test('a stop-like button outside the unified composer does not mark ChatGPT as g
     document: {
       querySelectorAll(selector) {
         if (selector === 'form[data-type="unified-composer"]') return [composer];
-        if (selector === 'button' || selector.includes('Dừng')) return [outsideStop];
+        if (selector === 'button' || selector.includes('Stop')) return [outsideStop];
         return [];
       },
     },
