@@ -22,8 +22,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 async function discoverChatGptChoices() {
   const model = await discoverMenu(findModelSwitcherButton, cleanModelLabel, true);
   const reasoning = await discoverMenu(findReasoningSwitcherButton, cleanReasoningLabel, true);
-  if (!model.options.length) {
-    throw new Error(`No ChatGPT model choices were discovered. Visible control diagnostics: ${modelControlDiagnostics()}`);
+  const nonAutoModels = model.options.filter((option) => !/^auto$/i.test(cleanModelLabel(option)));
+  if (!nonAutoModels.length) {
+    const selected = model.button ? describeControl(model.button) : 'none';
+    throw new Error(`No non-Auto ChatGPT model choices were discovered. Selected model control: ${selected}. Visible control diagnostics: ${modelControlDiagnostics()}`);
   }
   return {
     currentModel: model.current || 'Auto',
@@ -64,7 +66,7 @@ async function selectMenuChoice(value, findButton, cleanLabel, kind, includeComp
 
 async function discoverMenu(findButton, cleanLabel, includeComposer) {
   const button = findButton();
-  if (!button) return { current: '', options: [] };
+  if (!button) return { current: '', options: [], button: null };
   const current = cleanLabel(button.textContent || button.getAttribute('aria-label') || '');
   const wasExpanded = button.getAttribute('aria-expanded') === 'true';
   if (!wasExpanded) {
@@ -81,7 +83,7 @@ async function discoverMenu(findButton, cleanLabel, includeComposer) {
       await delay(120);
     }
   }
-  return { current, options };
+  return { current, options, button };
 }
 
 async function waitForMenuOptions(includeComposer) {
@@ -125,9 +127,11 @@ function looksLikeModelSwitcher(button) {
   const testId = cleanLabel(button.getAttribute('data-testid') || '');
   const id = cleanLabel(button.id || button.getAttribute('id') || '');
   const aria = cleanLabel(button.getAttribute('aria-label') || '');
-  if (/model/i.test(testId) || /model/i.test(id) || /model/i.test(aria)) return true;
+  const metadata = `${testId} ${id} ${aria}`;
+  if (/reasoning|thinking/i.test(metadata)) return false;
+  if (/model/i.test(metadata)) return true;
   const label = cleanModelLabel(button.textContent || aria);
-  return /^auto$/i.test(label) || looksLikeModelLabel(label);
+  return looksLikeModelLabel(label);
 }
 
 function modelControlDiagnostics() {
