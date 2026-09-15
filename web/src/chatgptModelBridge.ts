@@ -23,7 +23,7 @@ type ModelOptionsResponse = {
 
 type ModelBridgeCommand =
   | { action: 'model-options'; nonce: string; newConversationUrl?: string }
-  | { action: 'reasoning-select'; nonce: string; reasoning: string; newConversationUrl?: string };
+  | { action: 'choices-apply'; nonce: string; model: string; reasoning: string; newConversationUrl?: string };
 
 export async function discoverChatGptModelOptions(newConversationUrl?: string): Promise<ChatGptModelOptions> {
   const response = await bridge({ action: 'model-options', nonce: crypto.randomUUID(), newConversationUrl }, 12_000);
@@ -35,10 +35,11 @@ export async function discoverChatGptModelOptions(newConversationUrl?: string): 
   };
 }
 
-export async function applyChatGptReasoningChoice(reasoning: string, newConversationUrl?: string) {
-  const cleaned = reasoning.trim();
-  if (!cleaned || cleaned.toLowerCase() === 'auto') return;
-  await bridge({ action: 'reasoning-select', nonce: crypto.randomUUID(), reasoning: cleaned, newConversationUrl }, 12_000);
+export async function applyChatGptChoices(model: string, reasoning: string, newConversationUrl?: string) {
+  const cleanedModel = model.trim() || 'Auto';
+  const cleanedReasoning = reasoning.trim() || 'Auto';
+  if (cleanedModel.toLowerCase() === 'auto' && cleanedReasoning.toLowerCase() === 'auto') return;
+  await bridge({ action: 'choices-apply', nonce: crypto.randomUUID(), model: cleanedModel, reasoning: cleanedReasoning, newConversationUrl }, 12_000);
 }
 
 function bridge(command: ModelBridgeCommand, timeoutMs: number) {
