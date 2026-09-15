@@ -76,9 +76,9 @@ impl McpServer {
         };
         let (context, mut value) =
             self.prepare_call("agent_subagent_start", arguments, authenticated);
-        // `model` is dispatch metadata, not part of the durable runtime registration contract.
-        // Removing it here preserves upstream child identity/idempotency semantics while still
-        // allowing Fleet coordinators to select a visible ChatGPT model for browser children.
+        // Browser model/reasoning choices are dispatch metadata, not part of the durable runtime
+        // registration contract. Strip them before registration so upstream child identity and
+        // idempotency stay unchanged, then attach them only to fallback dispatch metadata.
         let requested_model = value
             .as_object_mut()
             .and_then(|object| object.remove("model"))
@@ -86,6 +86,16 @@ impl McpServer {
                 Value::String(model) => {
                     let model = model.trim().to_owned();
                     (!model.is_empty()).then_some(model)
+                }
+                _ => None,
+            });
+        let requested_reasoning = value
+            .as_object_mut()
+            .and_then(|object| object.remove("reasoning"))
+            .and_then(|value| match value {
+                Value::String(reasoning) => {
+                    let reasoning = reasoning.trim().to_owned();
+                    (!reasoning.is_empty()).then_some(reasoning)
                 }
                 _ => None,
             });
@@ -104,10 +114,13 @@ impl McpServer {
             Ok(value) => value,
             Err(error) => return CallToolResult::structured_error(error_value(&error)),
         };
-        if let (Some(model), Some(object)) =
-            (requested_model.as_deref(), registration.as_object_mut())
-        {
-            object.insert("model".to_owned(), Value::String(model.to_owned()));
+        if let Some(object) = registration.as_object_mut() {
+            if let Some(model) = requested_model.as_deref() {
+                object.insert("model".to_owned(), Value::String(model.to_owned()));
+            }
+            if let Some(reasoning) = requested_reasoning.as_deref() {
+                object.insert("reasoning".to_owned(), Value::String(reasoning.to_owned()));
+            }
         }
 
         let registered = registration.clone();
@@ -115,10 +128,8 @@ impl McpServer {
             .get("status")
             .and_then(Value::as_str)
             .unwrap_or("pending");
-        if requested_model.is_some() && status == "pending" {
-            // A concrete model label names a ChatGPT browser role. Force that route even when
-            // the MCP peer also supports native sampling; otherwise the requested role/model
-            // could be silently ignored.
+        if (requested_model.is_some() || requested_reasoning.is_some()) && status == "pending" {
+            // Explicit browser choice metadata must not be silently ignored by native sampling.
             match self
                 .runtime
                 .request_subagent_fallback(&context, &registration, &delegated_request)
@@ -135,7 +146,7 @@ impl McpServer {
                                 "workerStarted": false,
                                 "fallbackRequested": true,
                                 "fallbackAttempt": fallback.get("attempt").cloned().unwrap_or(Value::Null),
-                                "instruction": "ChatCMD queued this explicitly modeled child for the ChatGPT browser extension. Do not duplicate the delegated work in the parent. Call agent_subagent_wait until the child finishes or the fallback exhausts its retries."
+                                "instruction": "ChatCMD queued this child with explicit browser model/reasoning choices. Do not duplicate the delegated work in the parent. Call agent_subagent_wait until the child finishes or the fallback exhausts its retries."
                             }),
                         ),
                     );
