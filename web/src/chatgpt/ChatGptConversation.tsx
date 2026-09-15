@@ -1,10 +1,11 @@
-import { Bot, CircleAlert, CircleStop, ExternalLink, FolderOpen, LoaderCircle, MessageSquarePlus, Send, ShieldCheck, Sparkles, Unplug, X } from 'lucide-react';
+import { Bot, CircleAlert, CircleStop, ExternalLink, FolderOpen, LoaderCircle, MessageSquarePlus, Send, ShieldCheck, Unplug, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ClipboardEvent, FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { api } from '../api';
-import { chatGptExtensionAvailable, chatGptExtensionStatus, closeChatGptConversationTab, dispatchChatGptRequest, focusChatGptConversationTab, openChatGptConversationTab, prepareChatGptModelTab, reconcileChatGptRequest, recoverChatGptIdentity, stopChatGptRequest } from '../chatgptBridge';
+import { chatGptExtensionAvailable, chatGptExtensionStatus, closeChatGptConversationTab, dispatchChatGptRequest, focusChatGptConversationTab, openChatGptConversationTab, reconcileChatGptRequest, recoverChatGptIdentity, stopChatGptRequest } from '../chatgptBridge';
+import { applyChatGptChoices } from '../chatgptModelBridge';
 import { Modal } from '../components';
 import { tr } from '../i18n';
 import { canonicalProjectPath } from '../tasks/workspaceProjects';
@@ -13,6 +14,7 @@ import { orderAgentsByRecentUse, rememberAgentUse } from './agentRecency';
 import { useLoad } from '../useLoad';
 import { ComposerFileInput } from './ComposerFileInput';
 import { ChatGptAttachmentPreview } from './ChatGptAttachmentPreview';
+import { ChatGptModelPicker } from './ChatGptModelPicker';
 export { ChatGptTaskComposer } from './ChatGptTaskComposer';
 import { useCompactBridgeSync } from './compact/useCompactBridgeSync';
 import { fileAttachmentPayloads, messageContentWithTextAttachments, textAttachmentFromPaste, type ChatGptTextAttachment } from './pasteAttachments';
@@ -39,7 +41,8 @@ export function NewChatGptConversation() {
   const [textAttachments, setTextAttachments] = useState<ChatGptTextAttachment[]>([]);
   const pasteSequence = useRef(0);
   const [folderPicking, setFolderPicking] = useState(false);
-  const [modelTabOpening, setModelTabOpening] = useState(false);
+  const [model, setModel] = useState(DEFAULT_MODEL);
+  const [reasoning, setReasoning] = useState(DEFAULT_MODEL);
   const [confirmWithoutFolder, setConfirmWithoutFolder] = useState(false);
   const [extensionReady, setExtensionReady] = useState<boolean | null>(null);
   const [chatGptTabOpen, setChatGptTabOpen] = useState<boolean | null>(null);
@@ -92,18 +95,6 @@ export function NewChatGptConversation() {
     } finally { setFolderPicking(false); }
   };
 
-  const chooseModel = async () => {
-    if (busy || modelTabOpening) return;
-    setModelTabOpening(true); setError('');
-    try {
-      await prepareChatGptModelTab(newConversationUrl);
-      setExtensionReady(true);
-      setChatGptTabOpen(true);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : tr('Could not open ChatGPT to choose a model.'));
-    } finally { setModelTabOpening(false); }
-  };
-
   const handlePaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
     const text = event.clipboardData.getData('text/plain');
     const attachment = textAttachmentFromPaste(text, pasteSequence.current + 1);
@@ -126,9 +117,12 @@ export function NewChatGptConversation() {
       const status = await chatGptExtensionStatus();
       setExtensionReady(status.ready); setChatGptTabOpen(status.chatGptTabOpen);
       if (!status.ready) throw new Error(tr('ChatCMD ChatGPT Bridge extension is not ready. Enable or reload it, then try again.'));
-      const request = await api.createChatGptRequest({ agentId, model: DEFAULT_MODEL, projectFolder: projectFolder.trim(), content: effectiveContent });
+      await applyChatGptChoices(model, reasoning, newConversationUrl);
+      const request = await api.createChatGptRequest({ agentId, model, projectFolder: projectFolder.trim(), content: effectiveContent });
       rememberAgentUse(agentId);
-      await dispatchChatGptRequest({ requestId: request.id, submittedContent: request.submittedContent, model: request.model, newConversationUrl, attachments: fileAttachmentPayloads(textAttachments) });
+      // The prepared tab already has the selected model/reasoning. Send Auto here so
+      // the runner preserves that exact browser state while the backend records model.
+      await dispatchChatGptRequest({ requestId: request.id, submittedContent: request.submittedContent, model: DEFAULT_MODEL, newConversationUrl, attachments: fileAttachmentPayloads(textAttachments) });
       const taskId = await waitForTaskBinding(request.id);
       navigate(`/tasks/${encodeURIComponent(taskId)}`, { replace: true });
     } catch (reason) {
@@ -183,15 +177,15 @@ export function NewChatGptConversation() {
               {projectFolder && <button className="chatgpt-folder-clear" type="button" onClick={() => setProjectFolderFromUser('')} disabled={busy} aria-label={tr('Clear folder selection')}><X /></button>}
             </div>
           </div>
-          <div className="chatgpt-model-picker">
-            <span>{tr('Model')}</span>
-            <div className="chatgpt-model-picker-row">
-              <button className="chatgpt-model-select" type="button" onClick={() => void chooseModel()} disabled={busy || modelTabOpening}>
-                {modelTabOpening ? <LoaderCircle className="spin" /> : <Sparkles />}<span>{tr('Choose model')}</span><ExternalLink />
-              </button>
-              <small>{tr('Stronger models can take longer to complete the request.')}</small>
-            </div>
-          </div>
+          <ChatGptModelPicker
+            value={model}
+            reasoningValue={reasoning}
+            onChange={setModel}
+            onReasoningChange={setReasoning}
+            disabled={busy}
+            extensionReady={extensionReady}
+            newConversationUrl={newConversationUrl}
+          />
         </div>
         {textAttachments.length > 0 && <div className="chatgpt-message-attachments" aria-label={tr('Attachments for the next message')}>
           {textAttachments.map((attachment) => <ChatGptAttachmentPreview key={attachment.id} attachment={attachment} onRemove={() => setTextAttachments((current) => current.filter((item) => item.id !== attachment.id))} />)}
