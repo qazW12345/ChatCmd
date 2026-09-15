@@ -5,7 +5,29 @@
   "description": "Bridges the local ChatCMD console to an already signed-in chatgpt.com tab.",
   "permissions": ["tabs", "storage", "scripting", "alarms"],
   "host_permissions": ["https://chatgpt.com/*", "http://localhost/*", "http://127.0.0.1/*"],
-  "background": { "service_worker": "background.js" },
+  "background": {
+    "service_worker": "background.js",
+    "scripts": [
+      "firefox-background-compat.js",
+      "background-io.js",
+      "background-tabs.js",
+      "approval-bridge.js",
+      "background-recovery.js",
+      "background-capture.js",
+      "background-clock.js",
+      "background-subagent-heartbeat.js",
+      "background-subagent-failure.js",
+      "compact-protocol.js",
+      "background-compact-destination.js",
+      "background-compact.js",
+      "background.js"
+    ]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "chatcmd-fleet@local"
+    }
+  },
   "web_accessible_resources": [
     { "resources": ["sounds/sound_exe.mp3"], "matches": ["https://chatgpt.com/*"] }
   ],
