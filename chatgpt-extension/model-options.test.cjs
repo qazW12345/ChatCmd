@@ -38,6 +38,15 @@ test('new conversation preserves pre-applied browser choices on dispatch', () =>
   assert.doesNotMatch(page.slice(dispatch, dispatch + 320), /model:\s*request\.model/);
 });
 
+test('model picker refreshes reasoning after applying an explicit model', () => {
+  const picker = read('web/src/chatgpt/ChatGptModelPicker.tsx');
+  const select = picker.indexOf('const selectModel = async');
+  const clearReasoning = picker.indexOf('onReasoningChange(AUTO)', select);
+  const applyModel = picker.indexOf('await applyChatGptChoices(nextModel, AUTO, newConversationUrl)', select);
+  const reload = picker.indexOf('await loadOptions()', applyModel);
+  assert.ok(select >= 0 && clearReasoning > select && applyModel > clearReasoning && reload > applyModel);
+});
+
 test('content bridge discovers and applies live model and reasoning choices', async () => {
   const source = read('chatgpt-extension/content-chatgpt-models.js');
   new vm.Script(source, { filename: 'content-chatgpt-models.js' });
