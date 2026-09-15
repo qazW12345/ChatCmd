@@ -1,18 +1,17 @@
-import { getAppLanguage } from '../i18n';
 import type { SubagentRun } from '../types';
 
 const labels = {
-  disabled: ['0 (Disabled)', '0 (Tắt)'],
-  policy: ['0 disables new child Agents. A value above 0 lets the model decide when delegation would improve a task, independent of language or keywords.', '0 tắt Agent con. Giá trị lớn hơn 0 cho phép model tự quyết định khi nào chia việc sẽ hữu ích, không phụ thuộc ngôn ngữ hoặc từ khóa.'],
-  capacity: ['The limit is shared by the entire Agent tree. A nested Agent works locally when all slots are occupied. Values above 0 may create additional model sessions or ChatGPT conversations.', 'Giới hạn áp dụng cho toàn bộ cây Agent. Khi hết chỗ, Agent con xử lý tại chỗ thay vì gọi thêm Agent. Giá trị lớn hơn 0 có thể tạo thêm phiên model hoặc cuộc trò chuyện ChatGPT.'],
-  header: ['Conversation header', 'Tiêu đề cuộc trò chuyện'],
-  parent: ['Delegated by', 'Được giao bởi'],
-  preview: ['Preview conversation', 'Xem trước cuộc trò chuyện'],
-  previewError: ['Could not load conversation preview.', 'Không thể tải nội dung cuộc trò chuyện.'],
-  goToConversation: ['Go to conversation', 'Tới đoạn trò chuyện'],
+  disabled: '0 (Disabled)',
+  policy: '0 disables new child Agents. A value above 0 lets the model decide when delegation would improve a task, independent of language or keywords.',
+  capacity: 'The limit is shared by the entire Agent tree. A nested Agent works locally when all slots are occupied. Values above 0 may create additional model sessions or ChatGPT conversations.',
+  header: 'Conversation header',
+  parent: 'Delegated by',
+  preview: 'Preview conversation',
+  previewError: 'Could not load conversation preview.',
+  goToConversation: 'Go to conversation',
 } as const;
 export function subagentLabel(key: keyof typeof labels) {
-  return labels[key][getAppLanguage() === 'vi' ? 1 : 0];
+  return labels[key];
 }
 
 /** Stable pre-order, preserving orphaned/legacy entries rather than silently hiding them. */
