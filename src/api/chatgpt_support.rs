@@ -307,9 +307,9 @@ pub(super) fn wrapped_message(
         .filter(|value| !value.is_empty())
     {
         Some(project_folder) => format!(
-            "Sử dụng plugin @{agent_name}\n\nThư mục dự án: {project_folder}\n\nđể thực hiện yêu cầu sau: {content}"
+            "Use plugin @{agent_name}.\n\nProject folder: {project_folder}\n\nPerform the following request:\n\n{content}"
         ),
-        None => format!("Sử dụng plugin @{agent_name} để thực hiện yêu cầu sau:\n\n{content}"),
+        None => format!("Use plugin @{agent_name}.\n\nPerform the following request:\n\n{content}"),
     }
 }
 
@@ -329,20 +329,20 @@ mod tests {
 
     #[test]
     fn wrapped_message_omits_empty_project_folder() {
-        let message = wrapped_message("worker", Some("  "), "Kiểm tra dự án");
+        let message = wrapped_message("worker", Some("  "), "Check the project");
 
         assert_eq!(
             message,
-            "Sử dụng plugin @worker để thực hiện yêu cầu sau:\n\nKiểm tra dự án"
+            "Use plugin @worker.\n\nPerform the following request:\n\nCheck the project"
         );
-        assert!(!message.contains("Thư mục dự án:"));
+        assert!(!message.contains("Project folder:"));
     }
 
     #[test]
     fn wrapped_message_includes_trimmed_project_folder() {
-        let message = wrapped_message("worker", Some(" D:\\DEV\\Dotty "), "Kiểm tra");
+        let message = wrapped_message("worker", Some(" D:\\DEV\\Dotty "), "Check it");
 
-        assert!(message.contains("Thư mục dự án: D:\\DEV\\Dotty"));
+        assert!(message.contains("Project folder: D:\\DEV\\Dotty"));
     }
 }
 
