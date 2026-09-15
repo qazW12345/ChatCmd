@@ -80,8 +80,8 @@ async fn delegation_allowed_for_echo(original: &str, echo: &str) -> bool {
 async fn subagent_routed_policy_survives_shortened_mcp_echo() {
     assert!(
         delegation_allowed_for_echo(
-            "Chia ra agent đọc hai file, không sửa file",
-            "Đọc hai file, không sửa file"
+            "Delegate agents to read two files without modifying them",
+            "Read two files without modifying them"
         )
         .await
     );
@@ -91,8 +91,8 @@ async fn subagent_routed_policy_survives_shortened_mcp_echo() {
 async fn subagent_routed_policy_does_not_classify_original_or_echo_text() {
     assert!(
         delegation_allowed_for_echo(
-            "Không chia agent, chỉ đọc một file trong cuộc trò chuyện này",
-            "Chia ra agent đọc file"
+            "Do not delegate; read one file in this conversation",
+            "Delegate an agent to read the file"
         )
         .await
     );
@@ -101,13 +101,13 @@ async fn subagent_routed_policy_does_not_classify_original_or_echo_text() {
 #[tokio::test]
 async fn subagent_routed_two_readers_sync_progress_read_finish_and_parent_wait() {
     let (host, agent, directory) =
-        fixture("Chia ra 2 agent để thực hiện yêu cầu sau: đọc hai file, không sửa file").await;
+        fixture("Delegate 2 agents to read two files without modifying them").await;
     let mut root = turn_context("root-start", &agent, "agent_user_message", TURN, SCOPE);
     let synced = invoke(
         &host,
         &root,
         "agent_user_message",
-        json!({"content":"Đọc hai file"}),
+        json!({"content":"Read two files"}),
     )
     .await
     .unwrap();
@@ -252,8 +252,8 @@ async fn subagent_routed_two_readers_sync_progress_read_finish_and_parent_wait()
 }
 
 #[tokio::test]
-async fn subagent_registration_is_not_gated_by_vietnamese_text() {
-    let (host, agent, _dir) = fixture("Đọc file trong cuộc trò chuyện này, không chia agent").await;
+async fn subagent_registration_is_not_gated_by_message_language_or_text() {
+    let (host, agent, _dir) = fixture("Read the file in this conversation; do not delegate").await;
     let mut root = turn_context(
         "root-no-delegation",
         &agent,
@@ -265,7 +265,7 @@ async fn subagent_registration_is_not_gated_by_vietnamese_text() {
         &host,
         &root,
         "agent_user_message",
-        json!({"content":"Đọc một file"}),
+        json!({"content":"Read one file"}),
     )
     .await
     .unwrap();
@@ -283,7 +283,7 @@ async fn subagent_registration_is_not_gated_by_vietnamese_text() {
 
 #[tokio::test]
 async fn subagent_routed_policy_is_bound_to_the_synchronized_child_turn() {
-    let (host, agent, _dir) = fixture("Chia ra agent đọc file").await;
+    let (host, agent, _dir) = fixture("Delegate an agent to read the file").await;
     let mut root = turn_context(
         "root-original-turn",
         &agent,
@@ -295,7 +295,7 @@ async fn subagent_routed_policy_is_bound_to_the_synchronized_child_turn() {
         &host,
         &root,
         "agent_user_message",
-        json!({"content":"Đọc file"}),
+        json!({"content":"Read the file"}),
     )
     .await
     .unwrap();
@@ -309,8 +309,8 @@ async fn subagent_routed_policy_is_bound_to_the_synchronized_child_turn() {
     .await
     .unwrap();
     let later =
-        crate::chatgpt_routing::with_route("Không chia agent", "later-request", "later-turn");
-    sqlx::query("INSERT INTO chatgpt_bridge_requests(id,task_id,turn_id,agent_id,model,user_content,submitted_content,status,created_at_ms,updated_at_ms) VALUES('later-request',?,'later-turn',?,'Auto','Không chia agent',?,'running',?,?)")
+        crate::chatgpt_routing::with_route("Do not delegate", "later-request", "later-turn");
+    sqlx::query("INSERT INTO chatgpt_bridge_requests(id,task_id,turn_id,agent_id,model,user_content,submitted_content,status,created_at_ms,updated_at_ms) VALUES('later-request',?,'later-turn',?,'Auto','Do not delegate',?,'running',?,?)")
         .bind(TASK).bind(&agent).bind(later).bind(super::now_ms()+1).bind(super::now_ms()+1)
         .execute(host.repository.pool()).await.unwrap();
     let mut child = turn_context(
