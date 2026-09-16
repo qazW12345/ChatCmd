@@ -320,7 +320,14 @@ async fn root_manifest_symlink_is_skipped_without_reading_or_hashing_external_co
     let outside = TempDir::new().expect("outside fixture");
     let marker = outside.path().join("Cargo.toml");
     write(&marker, "external-secret-one");
-    link_file(&marker, &fixture.path().join("Cargo.toml")).expect("link root manifest");
+    if let Err(error) = link_file(&marker, &fixture.path().join("Cargo.toml")) {
+        #[cfg(windows)]
+        if error.raw_os_error() == Some(1314) {
+            eprintln!("skipping symlink test: Windows symlink privilege is unavailable");
+            return;
+        }
+        panic!("link root manifest: {error}");
+    }
     let service = ProjectContextService::default();
 
     let first = service.load(fixture.path(), &[]).await.expect("first scan");
