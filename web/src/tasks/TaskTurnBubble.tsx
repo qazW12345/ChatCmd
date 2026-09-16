@@ -396,7 +396,7 @@ function ActivityPopupContent({ activity, approvalPending, running }: { activity
   const codeView = activityCodeView(activity);
   return <div className="activity-popup-content">
     <div className="activity-command"><FileCode2 /><code>{command}</code></div>
-    {inputDetails.length > 0 && <section className="activity-input-details" aria-label={tr('Tool input details')}><header><strong>{tr('Request details')}</strong><code>{activity.tool}</code></header><dl>{inputDetails.map((item) => <div key={`${item.label}:${item.value}`}><dt>{item.label}</dt><dd>{item.code ? <code>{item.value}</code> : item.value}</dd></div>)}</section>}
+    {inputDetails.length > 0 && <section className="activity-input-details" aria-label={tr('Tool input details')}><header><strong>{tr('Request details')}</strong><code>{activity.tool}</code></header><dl>{inputDetails.map((item) => <div key={`${item.label}:${item.value}`}><dt>{item.label}</dt><dd>{item.code ? <code>{item.value}</code> : item.value}</dd></div>)}</dl></section>}
     {failed && <div className="activity-error-detail" role="alert">
       <div className="activity-error-heading"><CircleAlert aria-hidden="true" /><strong>{tr('Tool failed')}</strong></div>
       {activity.errorCode && <div className="activity-error-row"><span>{tr('Error code')}</span><code>{activity.errorCode}</code></div>}
@@ -462,4 +462,3 @@ function bubbleTimeLabel(value: string, nowMs: number) {
   return new Intl.DateTimeFormat(appLocale(), { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(timestamp));
 }
 function bubbleTimeHint(value: string) { const timestamp = Date.parse(value); if (!Number.isFinite(timestamp)) return value; return new Intl.DateTimeFormat(appLocale(), { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(timestamp)); }
-
