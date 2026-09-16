@@ -18,7 +18,7 @@ type SettingsTab = 'execution' | 'display' | 'sound' | 'security' | 'data' | 'up
 
 const SETTINGS_TABS: Array<{ id: SettingsTab; label: string; description: string; icon: typeof SlidersHorizontal }> = [
   { id: 'execution', label: 'Execution', description: 'Agent and terminal rules', icon: SlidersHorizontal },
-  { id: 'display', label: 'Display', description: 'Theme and language', icon: MonitorCog },
+  { id: 'display', label: 'Display', description: 'Theme and typography', icon: MonitorCog },
   { id: 'sound', label: 'Sound', description: 'Agent notifications', icon: Volume2 },
   { id: 'security', label: 'Security', description: 'GUI password and sessions', icon: LockKeyhole },
   { id: 'data', label: 'Data', description: 'SQLite and application logs', icon: Database },
@@ -79,7 +79,6 @@ export function SettingsPage() {
   if (result.error || !value) return <ErrorState message={result.error} retry={() => void result.reload()} />;
 
   const update = <K extends keyof LocalSettings>(key: K, next: LocalSettings[K]) => setValue({ ...value, [key]: next });
-  const updateLanguage = (language: LocalSettings['language']) => { update('language', language); setAppLanguage(language, true); };
   const updateFont = (fontFamily: string) => { const next = normalizeFontFamily(fontFamily); update('fontFamily', next); setFontSource('google'); persistPreferences({ fontFamily: next, fontSource: 'google' }); applyAppFont(next); };
   const uploadFont = async (file: File) => {
     setProblem('');
@@ -138,12 +137,11 @@ export function SettingsPage() {
             </div>
           </div>}
           {activeTab === 'display' && <div className="display-settings">
-            <SettingsIntro icon={<MonitorCog />} title={tr('Appearance and language')} description={tr('Personalize how ChatCMD looks and which language is used in the management interface. These choices do not change Agent permissions.')} />
+            <SettingsIntro icon={<MonitorCog />} title={tr('Appearance')} description={tr('Personalize how ChatCMD looks in the management interface. These choices do not change Agent permissions.')} />
             <div className="settings-section-block"><div className="settings-control-grid">
               <SettingField label={tr('Theme')} hint={tr('Controls the appearance of the management UI.')} detail={tr('System follows your operating system. Light and Dark keep a fixed appearance until you change this setting again.')}><select value={value.theme} onChange={(event) => update('theme', event.target.value as LocalSettings['theme'])}><option value="system">{tr('System')}</option><option value="light">{tr('Light')}</option><option value="dark">{tr('Dark')}</option></select></SettingField>
               <SettingField wide label={tr('Interface font')} hint={tr('Choose a Google Font, enter another family name, or upload a local font file.')} detail={tr('Uploaded fonts are stored only in this browser and restored automatically after reload. Supported formats: TTF, OTF, WOFF, and WOFF2 up to 10 MB.')}><FontPicker value={value.fontFamily} source={fontSource} onChange={updateFont} onUpload={uploadFont} /></SettingField>
               <SettingField wide label={tr('Task page font size')} hint={tr('Adjust text size only inside task conversation pages.')} detail={tr('ChatCMD scales typography together with key spacing, controls, icons, and side panels so larger or smaller text keeps the task UI balanced.')}><div className="settings-task-font-scale"><input type="range" min="90" max="130" step="5" value={value.taskFontScale} onChange={(event) => updateTaskFontScale(Number(event.target.value))} aria-label={tr('Task page font size')} /><div className="settings-font-presets">{TASK_FONT_SCALE_PRESETS.map((scale) => <button key={scale} type="button" className={`settings-font-chip ${value.taskFontScale === scale ? 'active' : ''}`} onClick={() => updateTaskFontScale(scale)}>{scale}%</button>)}</div><div className="settings-task-font-preview" style={{ '--preview-title-size': `${13 * value.taskFontScale / 100}px`, '--preview-body-size': `${11 * value.taskFontScale / 100}px` } as React.CSSProperties}><strong>{tr('Task conversation preview')}</strong><span>{tr('Messages, status, tools, sidebar, and composer resize together.')}</span></div></div></SettingField>
-              <SettingField label={tr('Language')} hint={tr('Applied immediately to the current browser.')} detail={tr('Changes interface labels and descriptions. Technical output from tools, terminals, or external services may still use its original language.')}><select value={value.language} onChange={(event) => updateLanguage(event.target.value as LocalSettings['language'])}><option value="en">English</option><option value="vi">Tiếng Việt</option></select></SettingField>
             </div></div>
           </div>}
           {activeTab === 'sound' && <div className="sound-settings">
@@ -186,12 +184,12 @@ function FontPicker({ value, source, onChange, onUpload }: { value: string; sour
     try { await onUpload(file); } finally { setUploading(false); }
   };
   return <div className="settings-font-picker">
-    <input list="chatcmd-google-fonts" value={value} onChange={(event) => onChange(event.target.value)} placeholder="Be Vietnam Pro" aria-label={tr('Google Font family')} />
+    <input list="chatcmd-google-fonts" value={value} onChange={(event) => onChange(event.target.value)} placeholder="Inter" aria-label={tr('Google Font family')} />
     <datalist id="chatcmd-google-fonts">{GOOGLE_FONT_PRESETS.map((font) => <option key={font} value={font} />)}</datalist>
-    <div className="settings-font-presets" aria-label={tr('Recommended Vietnamese fonts')}>{GOOGLE_FONT_PRESETS.map((font) => <button key={font} type="button" className={`settings-font-chip ${source === 'google' && value === font ? 'active' : ''}`} onClick={() => onChange(font)}>{font}</button>)}</div>
+    <div className="settings-font-presets" aria-label={tr('Recommended fonts')}>{GOOGLE_FONT_PRESETS.map((font) => <button key={font} type="button" className={`settings-font-chip ${source === 'google' && value === font ? 'active' : ''}`} onClick={() => onChange(font)}>{font}</button>)}</div>
     <label className="button secondary settings-font-upload"><Upload />{uploading ? tr('Loading font…') : tr('Upload font')}<input style={{ display: 'none' }} type="file" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" disabled={uploading} onChange={(event) => void chooseFile(event.target.files?.[0])} /></label>
     {source === 'uploaded' && <small>{tr('Using uploaded font stored in this browser.')}</small>}
-    <div className="settings-font-preview"><strong>ChatCMD · {value}</strong><span>{tr('Tiếng Việt rõ ràng · The quick brown fox jumps over the lazy dog.')}</span></div>
+    <div className="settings-font-preview"><strong>ChatCMD · {value}</strong><span>{tr('The quick brown fox jumps over the lazy dog.')}</span></div>
   </div>;
 }
 

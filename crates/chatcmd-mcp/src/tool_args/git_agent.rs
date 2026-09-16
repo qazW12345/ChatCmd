@@ -39,6 +39,10 @@ tool_args!(SubagentStartArgs {
     /// concrete model selects the browser route so the coordinator can separate worker roles.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     model: Option<String>,
+    /// Optional visible ChatGPT reasoning-effort label for browser-extension children, such as
+    /// Instant, Medium, or High. Supplying it selects the browser route even when model is Auto.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    reasoning: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     allowed_files: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -73,21 +77,24 @@ mod fleet_model_contract_tests {
     use super::*;
 
     #[test]
-    fn subagent_start_accepts_visible_model_label() {
+    fn subagent_start_accepts_visible_model_and_reasoning_labels() {
         let input = serde_json::from_value::<SubagentStartArgs>(serde_json::json!({
             "name": "independent-reviewer",
             "request": "Review exact candidate",
-            "model": "GPT-5.6 Sol"
+            "model": "GPT-5.6 Sol",
+            "reasoning": "High"
         }))
-        .expect("model field should be part of the public delegation contract");
+        .expect("routing fields should be part of the public delegation contract");
         assert_eq!(input.model.as_deref(), Some("GPT-5.6 Sol"));
+        assert_eq!(input.reasoning.as_deref(), Some("High"));
     }
 
     #[test]
-    fn subagent_start_schema_advertises_model_field() {
+    fn subagent_start_schema_advertises_routing_fields() {
         let schema = serde_json::to_value(schemars::schema_for!(SubagentStartArgs))
             .expect("subagent schema should serialize")
             .to_string();
         assert!(schema.contains("model"));
+        assert!(schema.contains("reasoning"));
     }
 }

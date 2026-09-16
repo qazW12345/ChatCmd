@@ -274,7 +274,7 @@ function composerMissingMessage() {
 
 async function selectModel(model) {
   const target = String(model || '').trim();
-  if (!target || ['auto', 'default', 'mặc định'].includes(target.toLowerCase())) return;
+  if (!target || ['auto', 'default'].includes(target.toLowerCase())) return;
   const button = findModelSwitcherButton();
   if (!button) throw new Error('ChatGPT is not currently showing a specific model selector. Use Auto in ChatCMD.');
   button.click();
@@ -288,7 +288,6 @@ async function selectModel(model) {
   option.click();
   await delay(200);
 }
-
 
 function findModelSwitcherButton() {
   const selectors = [
@@ -310,7 +309,6 @@ function findModelSwitcherButton() {
   }) || null;
 }
 
-
 function looksLikeModelLabel(value) {
   const text = String(value || '').trim();
   if (!text) return false;
@@ -321,7 +319,7 @@ function cleanModelLabel(value) {
   const text = String(value || '').replace(/\s+/g, ' ').trim();
   if (!text) return '';
   const stripped = text.replace(/^model\s*[:：-]?\s*/i, '').trim();
-  const ignored = ['model', 'models', 'select model', 'choose model', 'chatgpt', 'suy luận', 'vừa', 'thinking', 'reasoning'];
+  const ignored = ['model', 'models', 'select model', 'choose model', 'chatgpt', 'thinking', 'reasoning'];
   if (!stripped || ignored.includes(stripped.toLowerCase())) return '';
   return stripped;
 }

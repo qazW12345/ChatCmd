@@ -66,7 +66,7 @@ pub(super) async fn resume_compact(
         .await
         .map_err(db_problem)?;
     let content = format!(
-        "[[CHATCMD-CONTINUE:{}]]\n\nTiếp tục công việc còn dang dở theo bản handoff vừa nhận. ChatCMD đã gắn cuộc trò chuyện ChatGPT mới vào task hiện tại {}. Không tạo task mới, không làm lại phần đã hoàn tất, giữ nguyên yêu cầu và quyền thực thi hiện có. Nếu mọi yêu cầu đã xong, chỉ báo trạng thái hoàn tất; không tự phát sinh công việc mới.",
+        "[[CHATCMD-CONTINUE:{}]]\n\nContinue the unfinished work from the handoff you just received. ChatCMD has attached the new ChatGPT conversation to the existing task {}. Do not create a new task, do not redo completed work, and preserve the current request and execution permissions. If all requested work is already complete, report completion only; do not invent additional work.",
         job.id, job.task_id
     );
     let submitted = wrapped_message(

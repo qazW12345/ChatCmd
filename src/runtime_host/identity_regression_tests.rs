@@ -8,7 +8,7 @@ use super::{RuntimeHost, now_ms};
 use crate::runtime_host::user_message_tests::{test_host, turn_context};
 
 const ORIGINAL: &str = "task-chat-0fda330a-4ed7-5af2-83b9-ba5da0990aee";
-const PROMPT: &str = "Sử dụng plugin @rust_test\n\nThư mục dự án: D:\\DEV\\Caplog\\Client\n\nđể thực hiện yêu cầu sau: đọc docs/huongdan.md, điều chỉnh UI trang lading y hệt như ảnh t gửi, (chỉ lấy bố cục, còn màu vẫn theo chuẩn colorscheme)";
+const PROMPT: &str = "Use plugin @rust_test.\n\nProject folder: D:\\DEV\\Caplog\\Client\n\nPerform the following request:\n\nRead docs/guide.md and adjust the landing-page layout to match the provided image while keeping the existing color scheme.";
 
 async fn seed_bridge(
     host: &RuntimeHost,
@@ -352,7 +352,7 @@ async fn manual_post_compact_waits_for_browser_binding_and_reuses_task_without_a
     let writer = tokio::spawn(async move {
         tokio::time::sleep(Duration::from_millis(100)).await;
         let now = now_ms();
-        sqlx::query("INSERT INTO chatgpt_bridge_requests(id,task_id,turn_id,agent_id,model,user_content,submitted_content,status,conversation_id,conversation_url,created_at_ms,updated_at_ms) VALUES('manual-browser-turn',?,?,?,'Auto','tiếp tục','tiếp tục','running',?,?,?,?)")
+        sqlx::query("INSERT INTO chatgpt_bridge_requests(id,task_id,turn_id,agent_id,model,user_content,submitted_content,status,conversation_id,conversation_url,created_at_ms,updated_at_ms) VALUES('manual-browser-turn',?,?,?,'Auto','continue','continue','running',?,?,?,?)")
             .bind(ORIGINAL).bind("manual-browser-turn-id").bind(browser_agent)
             .bind(&new_id).bind(&new_url).bind(now).bind(now)
             .execute(&pool).await.expect("record browser continuation");
@@ -371,7 +371,7 @@ async fn manual_post_compact_waits_for_browser_binding_and_reuses_task_without_a
     let mut events = host.events.subscribe();
     tokio::time::timeout(
         Duration::from_secs(3),
-        host.ensure_call_identity(&mut context, Some("tiếp tục")),
+        host.ensure_call_identity(&mut context, Some("continue")),
     )
     .await
     .expect("must not wait for approval")
@@ -411,7 +411,7 @@ async fn manual_post_compact_fails_closed_instead_of_requesting_new_conversation
     let mut events = host.events.subscribe();
     let error = tokio::time::timeout(
         Duration::from_secs(3),
-        host.ensure_call_identity(&mut context, Some("tiếp tục")),
+        host.ensure_call_identity(&mut context, Some("continue")),
     )
     .await
     .expect("bounded compact binding wait")

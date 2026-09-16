@@ -4,7 +4,6 @@ import { createPortal } from 'react-dom';
 
 import { api } from '../api';
 import { Modal } from '../components';
-import { useAppLanguage } from '../i18n';
 import { clipboardAttachmentFromFile, fileAttachmentFromFile, type ChatGptTextAttachment } from './pasteAttachments';
 
 type DroppedFile = { file: File; path?: string };
@@ -26,8 +25,7 @@ type ComposerFileInputProps = {
 };
 
 export function ComposerFileInput(props: ComposerFileInputProps) {
-  const language = useAppLanguage();
-  const copy = language === 'vi' ? viCopy : enCopy;
+  const copy = enCopy;
   const fileInput = useRef<HTMLInputElement>(null);
   const fileSequence = useRef(0);
   const dragDepth = useRef(0);
@@ -278,15 +276,4 @@ const enCopy = {
   readError: 'Could not read the selected or pasted file.',
   pathError: 'Could not resolve the local path.',
   folder: 'Folder',
-};
-const viCopy = {
-  chooseFile: 'Chọn tệp',
-  dropHere: 'Thả tệp hoặc thư mục vào đây',
-  dropTitle: 'Bạn muốn sử dụng tệp này như thế nào?',
-  dropDescription: 'Đính kèm tệp vào ChatGPT hoặc chỉ chèn đường dẫn cục bộ của tệp vào nội dung.',
-  attachFile: 'Đính kèm tệp',
-  attachPath: 'Đính kèm path',
-  readError: 'Không thể đọc tệp đã chọn hoặc dán từ clipboard.',
-  pathError: 'Không thể lấy đường dẫn cục bộ.',
-  folder: 'Thư mục',
 };

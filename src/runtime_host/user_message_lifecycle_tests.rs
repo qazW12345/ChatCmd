@@ -32,7 +32,7 @@ async fn user_message_is_required_first_and_is_idempotent_per_turn() {
                 turn,
                 scope,
             ),
-            json!({"content":"Nguyên văn tin nhắn người dùng"}),
+            json!({"content":"Exact original user message"}),
         )
         .await
         .expect("sync user message");
@@ -90,7 +90,7 @@ async fn user_message_is_required_first_and_is_idempotent_per_turn() {
                 turn,
                 scope,
             ),
-            json!({"content":"Nguyên văn tin nhắn người dùng"}),
+            json!({"content":"Exact original user message"}),
         )
         .await
         .expect("idempotent retry");
@@ -111,7 +111,7 @@ async fn user_message_is_required_first_and_is_idempotent_per_turn() {
                 turn,
                 scope,
             ),
-            json!({"content":"Nội dung khác"}),
+            json!({"content":"Different content"}),
         )
         .await
         .expect_err("same turn cannot be rebound to different user text");
@@ -129,7 +129,7 @@ async fn user_message_is_required_first_and_is_idempotent_per_turn() {
     let payload: serde_json::Value = serde_json::from_str(&row.get::<String, _>("payload_json"))
         .expect("stored user message payload");
     assert_eq!(payload["role"], "user");
-    assert_eq!(payload["content"], "Nguyên văn tin nhắn người dùng");
+    assert_eq!(payload["content"], "Exact original user message");
 }
 
 #[tokio::test]
@@ -137,7 +137,7 @@ async fn first_message_seeds_task_id_and_only_first_final_can_name_chat() {
     let (host, agent_id, _directory) = test_host().await;
     let scope = "conversation-first-message-identity";
     let first_turn = "turn-first";
-    let first_text = "Khắc phục lỗi git diff stat trong dự án";
+    let first_text = "Fix git diff stat issue in the project";
 
     let first = host
         .call_persisted(
@@ -176,7 +176,7 @@ async fn first_message_seeds_task_id_and_only_first_final_can_name_chat() {
                 first_turn,
                 scope,
             ),
-            json!({"content":"Đã xử lý xong.", "suggestedTitle":"Sửa lỗi Git diff stat"}),
+            json!({"content":"Finished the fix.", "suggestedTitle":"Fix Git diff stat issue"}),
         )
         .await
         .expect("first completion");
@@ -193,7 +193,7 @@ async fn first_message_seeds_task_id_and_only_first_final_can_name_chat() {
                 second_turn,
                 scope,
             ),
-            json!({"content":"Commit thay đổi"}),
+            json!({"content":"Commit the changes"}),
         )
         .await
         .expect("second user message");
@@ -211,7 +211,7 @@ async fn first_message_seeds_task_id_and_only_first_final_can_name_chat() {
                 second_turn,
                 scope,
             ),
-            json!({"content":"Đã commit.", "suggestedTitle":"Tên này không được áp dụng"}),
+            json!({"content":"Committed.", "suggestedTitle":"This title must not be applied"}),
         )
         .await
         .expect("second completion");
@@ -222,7 +222,7 @@ async fn first_message_seeds_task_id_and_only_first_final_can_name_chat() {
         .fetch_one(host.repository.pool())
         .await
         .expect("final title");
-    assert_eq!(final_title, "Sửa lỗi Git diff stat");
+    assert_eq!(final_title, "Fix Git diff stat issue");
 }
 
 #[tokio::test]
@@ -246,7 +246,7 @@ async fn enabled_synchronized_turn_can_start_subagent_without_text_classificatio
                 turn,
                 scope,
             ),
-            json!({"content":"Rà soát toàn bộ source code và sub agent để tìm lỗi"}),
+            json!({"content":"Review the entire source code and subagents for bugs"}),
         )
         .await
         .expect("sync ordinary parent turn");
@@ -302,7 +302,7 @@ async fn repeated_subagent_registration_is_idempotent_with_new_request_id() {
                 turn,
                 scope,
             ),
-            json!({"content":"Chia agent: create delegated reviewer"}),
+            json!({"content":"Delegate an agent: create delegated reviewer"}),
         )
         .await
         .expect("sync parent");

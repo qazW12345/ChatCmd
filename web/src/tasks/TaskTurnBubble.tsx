@@ -414,7 +414,7 @@ function ActivityPopupContent({ activity, approvalPending, running }: { activity
 }
 
 function formatErrorDetails(value: unknown) { if (typeof value === 'string') return value; try { return JSON.stringify(value, null, 2); } catch { return String(value); } }
-function isChatGptSendDisabledMessage(value: string) { return value.includes('Nút gửi ChatGPT đang bị vô hiệu hóa.') || value.includes('The ChatGPT send button is disabled.'); }
+function isChatGptSendDisabledMessage(value: string) { return value.includes('The ChatGPT send button is disabled.'); }
 
 function BubbleTime({ value, ariaHidden = false }: { value: string; ariaHidden?: boolean }) {
   const nowMs = useAdaptiveNow(value);
@@ -462,4 +462,3 @@ function bubbleTimeLabel(value: string, nowMs: number) {
   return new Intl.DateTimeFormat(appLocale(), { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(timestamp));
 }
 function bubbleTimeHint(value: string) { const timestamp = Date.parse(value); if (!Number.isFinite(timestamp)) return value; return new Intl.DateTimeFormat(appLocale(), { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(timestamp)); }
-

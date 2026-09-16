@@ -160,7 +160,7 @@ export function NewChatGptConversationPage() {
       <header className="chatgpt-chat-topbar">
         <div className="chatgpt-chat-identity">
           <span className="chatgpt-logo"><Bot /></span>
-          <div><strong>ChatGPT</strong><small>{tr('Send using the signed-in ChatGPT session in Chrome / Edge.')}</small></div>
+          <div><strong>ChatGPT</strong><small>{tr('Send using the signed-in ChatGPT browser session.')}</small></div>
         </div>
         <div className="chatgpt-chat-controls">
           <span className={`chatgpt-connection-dot ${extensionReady === false ? 'missing' : extensionReady ? 'ready' : ''}`} title={extensionReady === null ? tr('Checking extension…') : extensionReady ? tr('Extension ready') : tr('Extension not connected')}>
@@ -255,8 +255,8 @@ function selectedPrompt(agents: Agent[], agentId: string, projectFolder: string,
   const name = agents.find((agent) => agent.id === agentId)?.name || 'agent';
   const folder = projectFolder.trim();
   return folder
-    ? `Sử dụng plugin @${name}\n\nThư mục dự án: ${folder}\n\nđể thực hiện yêu cầu sau: ${content || '…'}`
-    : `Sử dụng plugin @${name} để thực hiện yêu cầu sau:\n\n${content || '…'}`;
+    ? `Use plugin @${name}\n\nProject folder: ${folder}\n\nComplete the following request: ${content || '…'}`
+    : `Use plugin @${name} to complete the following request:\n\n${content || '…'}`;
 }
 
 function routeProjectFolder(state: unknown) {

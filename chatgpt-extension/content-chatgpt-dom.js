@@ -56,12 +56,10 @@
       'button[data-testid="stop-button"]',
       'button[data-testid="stop-generating-button"]',
       'button[aria-label*="Stop" i]',
-      'button[aria-label*="Dừng" i]',
-      'button[aria-label*="Ngừng" i]',
     ]);
     if (direct) return direct;
     return [...root.querySelectorAll('button')].filter(isVisible).find((button) =>
-      /^(stop|dừng|ngừng)(?:\s|$)/i.test(normalize(button.getAttribute('aria-label') || button.textContent))) || null;
+      /^(stop)(?:\s|$)/i.test(normalize(button.getAttribute('aria-label') || button.textContent))) || null;
   }
 
   function clickStopButton() {

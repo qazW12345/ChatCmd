@@ -122,7 +122,7 @@ mod tests {
         let root = TempDir::new().expect("temp root");
         let folder = root.path().join("folder with spaces");
         std::fs::create_dir_all(&folder).expect("create folder");
-        let content = format!("Thư mục dự án: {} để thực hiện yêu cầu", folder.display());
+        let content = format!("Project folder: {} to perform the request", folder.display());
         let paths = extract_explicit_absolute_paths(&content);
         assert!(paths.contains(&folder.canonicalize().expect("canonical folder")));
     }

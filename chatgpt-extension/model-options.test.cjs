@@ -11,15 +11,18 @@ function read(relative) {
   return fs.readFileSync(path.join(repoRoot, relative), 'utf8');
 }
 
-test('manifest loads model discovery in Chromium and Firefox paths', () => {
+test('manifest loads model discovery and child routing in Chromium and Firefox paths', () => {
   const manifest = JSON.parse(read('chatgpt-extension/manifest.json'));
-  assert.equal(manifest.version, '0.1.18');
+  assert.equal(manifest.version, '0.1.19');
   assert.equal(manifest.background.service_worker, 'background-entry.js');
   assert.ok(manifest.background.scripts.includes('background-model-options.js'));
+  assert.ok(manifest.background.scripts.includes('background-child-routing.js'));
+  assert.ok(manifest.background.scripts.indexOf('background-child-routing.js') < manifest.background.scripts.indexOf('background.js'));
   const chatgpt = manifest.content_scripts.find((entry) => entry.matches.includes('https://chatgpt.com/*') && entry.world !== 'MAIN');
   assert.ok(chatgpt);
   assert.ok(chatgpt.js.includes('content-chatgpt-models.js'));
-  assert.match(read('chatgpt-extension/background-entry.js'), /background\.js.*background-model-options\.js/);
+  const entry = read('chatgpt-extension/background-entry.js');
+  assert.match(entry, /background-child-routing\.js.*background\.js.*background-model-options\.js/);
 });
 
 test('web and manifest require the same extension protocol version', () => {
@@ -36,6 +39,30 @@ test('new conversation preserves pre-applied browser choices on dispatch', () =>
   assert.ok(apply >= 0 && create > apply && dispatch > create);
   assert.match(page.slice(dispatch, dispatch + 320), /model:\s*AUTO/);
   assert.doesNotMatch(page.slice(dispatch, dispatch + 320), /model:\s*request\.model/);
+});
+
+test('child routing applies reasoning before the run message', async () => {
+  const source = read('chatgpt-extension/background-child-routing.js');
+  new vm.Script(source, { filename: 'background-child-routing.js' });
+  const calls = [];
+  const chrome = {
+    tabs: {
+      async sendMessage(tabId, message) {
+        calls.push({ tabId, message: JSON.parse(JSON.stringify(message)) });
+        return { ok: true };
+      },
+    },
+  };
+  vm.runInNewContext(source, { chrome, JSON, Error }, { filename: 'background-child-routing.js' });
+  const route = '__CHATCMD_CHILD_ROUTE_V1__:' + JSON.stringify({ model: 'Auto', reasoning: 'Instant' });
+  const result = await chrome.tabs.sendMessage(42, { type: 'chatcmd-chatgpt-run', requestId: 'child-1', model: route });
+  assert.equal(result.ok, true);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].message.type, 'chatcmd-chatgpt-select-choices');
+  assert.equal(calls[0].message.model, 'Auto');
+  assert.equal(calls[0].message.reasoning, 'Instant');
+  assert.equal(calls[1].message.type, 'chatcmd-chatgpt-run');
+  assert.equal(calls[1].message.model, 'Auto');
 });
 
 test('content bridge discovers and applies live model and reasoning choices', async () => {

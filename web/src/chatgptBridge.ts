@@ -4,8 +4,9 @@ import { ChatGptBridgeTimeoutError } from './chatgpt/bridgeErrors';
 
 const REQUEST_TYPE = 'chatcmd-chatgpt-extension-request';
 const RESPONSE_TYPE = 'chatcmd-chatgpt-extension-response';
+const CHILD_ROUTE_PREFIX = '__CHATCMD_CHILD_ROUTE_V1__:';
 
-export const REQUIRED_CHATGPT_EXTENSION_VERSION = '0.1.18';
+export const REQUIRED_CHATGPT_EXTENSION_VERSION = '0.1.19';
 
 
 type BridgeCommand =
@@ -78,8 +79,14 @@ export async function dispatchChatGptRequest(input: { requestId: string; submitt
   await bridge({ action: 'send', nonce: nonce(), ...input, localBaseUrl: window.location.origin }, 5_000);
 }
 
-export async function dispatchSubagentFallback(input: { subagentId: string; childTaskId: string; submittedContent: string; attempt: number; model?: string; conversationUrl?: string; newConversationUrl?: string }) {
-  await bridge({ action: 'subagent-send', nonce: nonce(), ...input, model: input.model || 'Auto', localBaseUrl: window.location.origin }, 5_000);
+export async function dispatchSubagentFallback(input: { subagentId: string; childTaskId: string; submittedContent: string; attempt: number; model?: string; reasoning?: string; conversationUrl?: string; newConversationUrl?: string }) {
+  const model = input.model?.trim() || 'Auto';
+  const reasoning = input.reasoning?.trim() || 'Auto';
+  await bridge({
+    action: 'subagent-send', nonce: nonce(), ...input,
+    model: encodeChildRoute(model, reasoning),
+    localBaseUrl: window.location.origin,
+  }, 5_000);
 }
 
 export async function closeSubagentFallbackTab(subagentId: string) {
@@ -100,6 +107,11 @@ export async function recoverChatGptIdentity(requestId: string, submittedContent
 
 export async function resumeChatGptCompact(jobId: string, taskId: string) {
   await bridge({ action: 'compact-resume', nonce: nonce(), jobId, taskId, localBaseUrl: window.location.origin }, 5_000);
+}
+
+function encodeChildRoute(model: string, reasoning: string) {
+  if (reasoning.toLowerCase() === 'auto') return model;
+  return `${CHILD_ROUTE_PREFIX}${JSON.stringify({ model, reasoning })}`;
 }
 
 function bridge(command: BridgeCommand, timeoutMs: number) {

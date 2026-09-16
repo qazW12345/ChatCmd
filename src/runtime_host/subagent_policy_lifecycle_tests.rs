@@ -63,7 +63,7 @@ fn assert_enabled_policy(reply: &Value, limit: i64) {
 #[tokio::test]
 async fn delegation_policy_is_identical_for_all_user_text() {
     let messages = [
-        "test chia agent, mỗi agent đọc 1 file",
+        "test split agents, each agent reads one file",
         "请让每个代理读取一个文件",
         "各エージェントが1つのファイルを読んでください",
         "اجعل كل وكيل يقرأ ملفًا واحدًا",

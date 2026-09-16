@@ -73,7 +73,9 @@ async fn pending_api_returns_queued_child_with_marker_and_parent_identity() {
     assert_eq!(item["parentTurnId"], PARENT_TURN_ID);
     assert_eq!(item["attempt"], 1);
     assert!(item["submittedContent"].as_str().is_some_and(|value| {
-        value.starts_with("Sử dụng plugin @User message sync test để thực hiện yêu cầu sau:")
+        value.starts_with(
+            "Use plugin @User message sync test.\n\nPerform the following delegated request:"
+        )
     }));
     assert!(
         item["submittedContent"]
@@ -232,7 +234,8 @@ async fn unsynchronized_browser_answers_retry_then_fail_without_a_completed_repo
                 attempt,
                 status: "completed".to_owned(),
                 assistant_content: Some(
-                    "Bị chặn trước khi đồng bộ nên chưa đọc file; workOutcome: blocked.".to_owned(),
+                    "Blocked before synchronization, so the file was not read; workOutcome: blocked."
+                        .to_owned(),
                 ),
                 error_message: None,
                 conversation_id: Some(conversation_id.to_owned()),

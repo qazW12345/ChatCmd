@@ -78,7 +78,7 @@ describe('ComposerFileInput', () => {
 
   beforeEach(() => {
     previousLanguage = getAppLanguage();
-    setAppLanguage('vi', false);
+    setAppLanguage('en', false);
     pickerMocks.pickFilePath.mockReset();
     pickerMocks.pickProjectFolder.mockReset();
   });
@@ -94,8 +94,8 @@ describe('ComposerFileInput', () => {
       dataTransfer: dropData([file], [fileItem(file)], 'D:\\docs\\note.txt'),
     });
 
-    expect(await screen.findByRole('dialog', { name: 'Bạn muốn sử dụng tệp này như thế nào?' })).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Đính kèm path' }));
+    expect(await screen.findByRole('dialog', { name: 'How do you want to use this file?' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Attach path' }));
 
     await waitFor(() => expect(screen.getByTestId('value')).toHaveTextContent('D:\\docs\\note.txt'));
     expect(screen.getByTestId('attachments')).toBeEmptyDOMElement();
@@ -111,8 +111,8 @@ describe('ComposerFileInput', () => {
       dataTransfer: dropData([file], [fileItem(file)], 'D:\\docs\\dropped.txt'),
     });
 
-    expect(await screen.findByRole('dialog', { name: 'Bạn muốn sử dụng tệp này như thế nào?' })).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Đính kèm tệp' }));
+    expect(await screen.findByRole('dialog', { name: 'How do you want to use this file?' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Attach file' }));
 
     await waitFor(() => expect(screen.getByTestId('attachments')).toHaveTextContent('dropped.txt'));
     expect(screen.getByTestId('value')).toBeEmptyDOMElement();

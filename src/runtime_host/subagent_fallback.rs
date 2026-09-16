@@ -30,7 +30,9 @@ pub(crate) fn browser_subagent_prompt(
          If a call returns an error, report its exact code and message. Treat it as the result of that call only unless the returned data explicitly says otherwise."
     );
     match agent_name.map(str::trim).filter(|name| !name.is_empty()) {
-        Some(name) => format!("Sử dụng plugin @{name} để thực hiện yêu cầu sau:\n\n{delegated}"),
+        Some(name) => format!(
+            "Use plugin @{name}.\n\nPerform the following delegated request:\n\n{delegated}"
+        ),
         None => delegated,
     }
 }
@@ -50,6 +52,9 @@ mod prompt_tests {
         let retry =
             browser_subagent_prompt(Some("reader"), "Inspect files", "child-1", "task-child");
         assert_eq!(initial, retry);
+        assert!(initial.starts_with(
+            "Use plugin @reader.\n\nPerform the following delegated request:\n\nInspect files"
+        ));
         assert_eq!(initial.matches("CMDGPT_SUBAGENT_ID=").count(), 1);
         assert!(initial.contains("taskId=task-child, turnId=turn-child-1"));
         assert!(initial.contains("content set exactly to the marker line above"));
@@ -102,6 +107,11 @@ impl RuntimeHost {
             })?;
         let requested_model = registration
             .get("model")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty());
+        let requested_reasoning = registration
+            .get("reasoning")
             .and_then(Value::as_str)
             .map(str::trim)
             .filter(|value| !value.is_empty());
@@ -190,6 +200,7 @@ impl RuntimeHost {
                 "childTaskId": child_task_id,
                 "name": name,
                 "model": requested_model,
+                "reasoning": requested_reasoning,
                 "projectFolder": project_folder,
                 "submittedContent": submitted_content,
                 "attempt": attempt,
@@ -200,7 +211,8 @@ impl RuntimeHost {
         Ok(json!({
             "attempt": attempt,
             "maxAttempts": MAX_EXTENSION_FALLBACK_ATTEMPTS,
-            "model": requested_model
+            "model": requested_model,
+            "reasoning": requested_reasoning
         }))
     }
 }

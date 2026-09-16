@@ -41,7 +41,7 @@ async fn user_supplied_absolute_path_grant_persists_for_task_case() {
         .call_persisted(
             "agent_user_message",
             turn_context("path-user", &agent_id, "agent_user_message", turn, scope),
-            json!({"content": format!("Tham khảo từ `{}`", granted_directory.display())}),
+            json!({"content": format!("Refer to `{}`", granted_directory.display())}),
         )
         .await
         .expect("sync user path message");
@@ -109,7 +109,7 @@ async fn user_supplied_absolute_path_grant_persists_for_task_case() {
     host.call_persisted(
         "agent_user_message",
         next_user_context,
-        json!({"content":"Tiếp tục"}),
+        json!({"content":"Continue"}),
     )
     .await
     .expect("sync next user turn");
@@ -152,7 +152,7 @@ async fn single_file_path_binds_its_parent_and_later_messages_do_not_override_it
                 "turn-file-path",
                 scope,
             ),
-            json!({"content": format!("Kiểm tra file `{}`", file.display())}),
+            json!({"content": format!("Check file `{}`", file.display())}),
         )
         .await
         .expect("sync file path message");
@@ -169,7 +169,7 @@ async fn single_file_path_binds_its_parent_and_later_messages_do_not_override_it
     host.call_persisted(
         "agent_user_message",
         next_context,
-        json!({"content": format!("Tiếp tục ở `{}`", second.path().display())}),
+        json!({"content": format!("Continue in `{}`", second.path().display())}),
     )
     .await
     .expect("sync later path message");
@@ -210,7 +210,7 @@ async fn multiple_absolute_paths_do_not_bind_an_ambiguous_project_folder() {
             ),
             json!({
                 "content": format!(
-                    "So sánh `{}` với `{}`",
+                    "Compare `{}` with `{}`",
                     first.path().display(),
                     second.path().display()
                 )
@@ -234,7 +234,7 @@ async fn chatgpt_bridge_reuses_existing_task_when_chatgpt_reformats_the_prompt()
     let (host, agent_id, _directory) = test_host().await;
     let task_id = "task-chatgpt-bridge-existing";
     let request_id = "chatgpt-request-existing";
-    let submitted = "Sử dụng plugin @test_rust\n\nThư mục dự án: D:\\DEV\\CmdGPT\\ChatCmdClient\n\nđể thực hiện yêu cầu sau: Kiểm tra http://localhost:8080/api/local/overview \n\n\nVí dụ abcd ";
+    let submitted = "Use plugin @test_rust\n\nProject folder: D:\\DEV\\CmdGPT\\ChatCmdClient\n\nto perform the following request: Check http://localhost:8080/api/local/overview \n\n\nExample abcd ";
     let message_from_chatgpt = submitted
         .replacen("@test_rust", "@test\\_rust", 1)
         .replacen(
@@ -242,8 +242,8 @@ async fn chatgpt_bridge_reuses_existing_task_when_chatgpt_reformats_the_prompt()
             "[http://localhost:8080/api/local/overview](http://localhost:8080/api/local/overview)",
             1,
         )
-        .replacen("\n\n\nVí dụ", "\n\n\n\nVí dụ", 1)
-        .replacen("Ví dụ abcd ", "Ví dụ abcd\u{00a0}", 1);
+        .replacen("\n\n\nExample", "\n\n\n\nExample", 1)
+        .replacen("Example abcd ", "Example abcd\u{00a0}", 1);
     let now = now_ms();
 
     sqlx::query(
@@ -253,7 +253,7 @@ async fn chatgpt_bridge_reuses_existing_task_when_chatgpt_reformats_the_prompt()
     .bind(&agent_id)
     .bind(host.device.id.as_str())
     .bind("openai:url-conversation-id")
-    .bind("Kiểm tra duplicate task")
+    .bind("Check duplicate task")
     .bind(now)
     .bind(now)
     .execute(host.repository.pool())
@@ -268,7 +268,7 @@ async fn chatgpt_bridge_reuses_existing_task_when_chatgpt_reformats_the_prompt()
     .bind("chatgpt-turn-existing")
     .bind(&agent_id)
     .bind("Auto")
-    .bind("Kiểm tra duplicate task")
+    .bind("Check duplicate task")
     .bind(submitted)
     .bind("conversation-url-id")
     .bind("https://chatgpt.com/c/conversation-url-id")
@@ -329,7 +329,7 @@ async fn chatgpt_bridge_reuses_existing_task_when_chatgpt_reformats_the_prompt()
 #[tokio::test]
 async fn chatgpt_bridge_uses_explicit_task_when_identical_messages_are_active() {
     let (host, agent_id, _directory) = test_host().await;
-    let submitted = "Sử dụng plugin @test_rust\n\nThư mục dự án: D:\\DEV\\CmdGPT\\ChatCmdClient\n\nđể thực hiện yêu cầu sau: commit";
+    let submitted = "Use plugin @test_rust\n\nProject folder: D:\\DEV\\CmdGPT\\ChatCmdClient\n\nto perform the following request: commit";
     let first_task = "task-chatgpt-bridge-commit-a";
     let second_task = "task-chatgpt-bridge-commit-b";
     let now = now_ms();
@@ -398,7 +398,7 @@ async fn chatgpt_bridge_claims_first_tool_call_before_user_message_sync() {
     let (host, agent_id, _directory) = test_host().await;
     let task_id = "task-chatgpt-bridge-pre-user-tool";
     let request_id = "chatgpt-request-pre-user-tool";
-    let submitted = "Sử dụng plugin @User message sync test để thực hiện yêu cầu sau:\n\nKiểm tra tool đến trước user message";
+    let submitted = "Use plugin @User message sync test to perform the following request:\n\nCheck tool before user message";
     let now = now_ms();
 
     sqlx::query(
@@ -408,7 +408,7 @@ async fn chatgpt_bridge_claims_first_tool_call_before_user_message_sync() {
     .bind(&agent_id)
     .bind(host.device.id.as_str())
     .bind("openai:WEB:temporary-browser-scope")
-    .bind("Tool trước user message")
+    .bind("Tool before user message")
     .bind(now)
     .bind(now)
     .execute(host.repository.pool())
@@ -423,7 +423,7 @@ async fn chatgpt_bridge_claims_first_tool_call_before_user_message_sync() {
     .bind("chatgpt-turn-pre-user-tool")
     .bind(&agent_id)
     .bind("Auto")
-    .bind("Kiểm tra tool đến trước user message")
+    .bind("Check tool before user message")
     .bind(submitted)
     .bind("WEB:temporary-browser-id")
     .bind("https://chatgpt.com/c/WEB:temporary-browser-id")
@@ -470,7 +470,7 @@ async fn chatgpt_bridge_claims_first_tool_call_before_user_message_sync() {
 async fn chatgpt_bridge_claims_unbound_request_before_bridge_started() {
     let (host, agent_id, _directory) = test_host().await;
     let request_id = "chatgpt-request-unbound-before-started";
-    let submitted = "Sử dụng plugin @User message sync test để thực hiện yêu cầu sau:\n\nClaim request trước bridge_started";
+    let submitted = "Use plugin @User message sync test to perform the following request:\n\nClaim request before bridge_started";
     let now = now_ms();
 
     sqlx::query(
@@ -480,7 +480,7 @@ async fn chatgpt_bridge_claims_unbound_request_before_bridge_started() {
     .bind("chatgpt-turn-unbound")
     .bind(&agent_id)
     .bind("Auto")
-    .bind("Claim request trước bridge_started")
+    .bind("Claim request before bridge_started")
     .bind(submitted)
     .bind(now)
     .bind(now)

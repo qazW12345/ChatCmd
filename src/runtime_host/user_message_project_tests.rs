@@ -55,7 +55,7 @@ async fn user_message_and_workspace_roots_report_the_task_project_folder() {
                 turn_id,
                 "conversation-task-workspace-result",
             ),
-            json!({"content":format!("Kiểm tra dự án `{expected}`")}),
+            json!({"content":format!("Check project `{expected}`")}),
         )
         .await
         .expect("sync task project folder");
@@ -172,7 +172,7 @@ async fn delegated_child_inherits_project_folder_and_keeps_internal_user_message
                 parent_turn,
                 parent_scope,
             ),
-            json!({"content":format!("Chia agent: create one delegated child for `{}`", project.display())}),
+            json!({"content":format!("Split agents: create one delegated child for `{}`", project.display())}),
         )
         .await
         .expect("sync parent user message");

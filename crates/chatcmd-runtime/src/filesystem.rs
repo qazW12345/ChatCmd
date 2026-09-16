@@ -821,7 +821,7 @@ mod path_safety_tests {
     #[test]
     fn unicode_path_is_authorized_without_lossy_normalization() {
         let workspace = TempDir::new().expect("workspace");
-        let file = workspace.path().join("dữ-liệu-猫.txt");
+        let file = workspace.path().join("データ-猫.txt");
         fs::write(&file, "unicode").expect("unicode file");
 
         assert_eq!(

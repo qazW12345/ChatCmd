@@ -5,25 +5,22 @@ import { resolveAppLanguage, setAppLanguage, tr } from '../i18n';
 describe('app language resolution', () => {
   afterEach(() => setAppLanguage('en', false));
 
-  it('uses Vietnamese for vi browser locales and English for en locales', () => {
-    expect(resolveAppLanguage('vi-VN')).toBe('vi');
+  it('uses English for every browser locale', () => {
+    expect(resolveAppLanguage('vi-VN')).toBe('en');
     expect(resolveAppLanguage('en-US')).toBe('en');
-  });
-
-  it('falls back to English for every unsupported browser locale', () => {
     expect(resolveAppLanguage('fr-FR')).toBe('en');
     expect(resolveAppLanguage('ja-JP')).toBe('en');
     expect(resolveAppLanguage('')).toBe('en');
   });
 
-  it('lets a saved user choice override the browser locale', () => {
-    expect(resolveAppLanguage('en-US', 'vi')).toBe('vi');
+  it('normalizes any saved language choice to English', () => {
+    expect(resolveAppLanguage('en-US', 'vi')).toBe('en');
     expect(resolveAppLanguage('vi-VN', 'en')).toBe('en');
   });
 
-  it('switches translated UI text at runtime', () => {
+  it('keeps UI text English even when an old alternate-language preference is requested', () => {
     setAppLanguage('vi', false);
-    expect(tr('Settings')).toBe('Cài đặt');
+    expect(tr('Settings')).toBe('Settings');
     setAppLanguage('en', false);
     expect(tr('Settings')).toBe('Settings');
   });

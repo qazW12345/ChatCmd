@@ -430,9 +430,9 @@ mod tests {
 
     #[test]
     fn duplicate_user_message_must_match_exact_content() {
-        let payload = json!({"role":"user","content":"xin chào"}).to_string();
-        assert!(same_user_message(&payload, "xin chào"));
-        assert!(!same_user_message(&payload, "xin chào!"));
+        let payload = json!({"role":"user","content":"hello"}).to_string();
+        assert!(same_user_message(&payload, "hello"));
+        assert!(!same_user_message(&payload, "hello!"));
     }
 
     #[test]
@@ -445,8 +445,8 @@ mod tests {
     #[test]
     fn first_message_title_is_compact_and_bounded() {
         assert_eq!(
-            compact_task_title("  sửa   lỗi git diff  "),
-            "sửa lỗi git diff"
+            compact_task_title("  fix   git diff bug  "),
+            "fix git diff bug"
         );
         assert!(compact_task_title(&"x".repeat(100)).chars().count() <= 78);
     }

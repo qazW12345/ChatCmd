@@ -7,7 +7,7 @@ describe('clipboard and file attachments', () => {
   });
 
   it('turns a long paste into a UTF-8 txt attachment without changing its content', () => {
-    const text = `Đầu file\n${'x'.repeat(LONG_PASTE_TEXT_THRESHOLD)}`;
+    const text = `File start\n${'x'.repeat(LONG_PASTE_TEXT_THRESHOLD)}`;
     expect(textAttachmentFromPaste(text, 2)).toEqual({
       id: 'pasted-text-2',
       name: 'pasted-text-2.txt',
@@ -43,9 +43,9 @@ describe('clipboard and file attachments', () => {
   it('uses a small textual prompt when the message consists only of attachments', () => {
     const attachment = textAttachmentFromPaste('x'.repeat(LONG_PASTE_TEXT_THRESHOLD), 1)!;
     expect(messageContentWithTextAttachments('', [attachment]))
-      .toBe('Nội dung tin nhắn nằm trong tệp đính kèm pasted-text-1.txt.');
-    expect(messageContentWithTextAttachments('  xem giúp nội dung này  ', [attachment]))
-      .toBe('xem giúp nội dung này');
+      .toBe('The message content is in the attached file pasted-text-1.txt.');
+    expect(messageContentWithTextAttachments('  review this content  ', [attachment]))
+      .toBe('review this content');
   });
 
   it('strips UI-only ids while preserving attachment encoding in the bridge payload', () => {
