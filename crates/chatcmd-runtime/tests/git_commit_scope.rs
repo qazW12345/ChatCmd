@@ -436,7 +436,7 @@ async fn preview_binds_selected_worktree_bytes_not_only_the_path() {
 }
 
 #[tokio::test]
-async fn all_rejects_unstaged_or_untracked_changes_without_mutating_index() {
+async fn all_preview_reports_unstaged_and_untracked_changes_without_mutating_index() {
     let directory = repository();
     write(&directory.path().join("tracked.txt"), "base\n");
     commit_all(directory.path(), "base");
@@ -445,7 +445,7 @@ async fn all_rejects_unstaged_or_untracked_changes_without_mutating_index() {
     let index_before = git(directory.path(), &["diff", "--cached", "--binary"]);
     let head_before = git(directory.path(), &["rev-parse", "HEAD"]);
 
-    let error = service(directory.path())
+    let preview = service(directory.path())
         .preview_commit_with_options(
             directory.path(),
             true,
@@ -454,9 +454,13 @@ async fn all_rejects_unstaged_or_untracked_changes_without_mutating_index() {
             CancellationToken::new(),
         )
         .await
-        .expect_err("all must not implicitly stage worktree changes");
+        .expect("all=true preview should include worktree changes without staging them");
 
-    assert_eq!(error.code, "git_scope_conflict");
+    assert!(preview.all);
+    assert!(preview.scope_paths.is_empty());
+    assert!(preview.staged_paths.is_empty());
+    assert_eq!(preview.unstaged_paths, vec!["tracked.txt"]);
+    assert_eq!(preview.untracked_paths, vec!["untracked.txt"]);
     assert_eq!(
         git(directory.path(), &["diff", "--cached", "--binary"]),
         index_before
